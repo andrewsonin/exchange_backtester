@@ -31,7 +31,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         if event.get_order_size() == OrderSize(0) {
             self.remove_prl_entry(event)
         } else if self.history_order_ids.contains(&event.get_order_id()) {
-            self.update_prl_entry(event)
+            self.update_traded_prl_entry(event)
         } else {
             self.insert_limit_order::<HistoryEvent, { OrderOrigin::History }>(event)
         }
@@ -92,7 +92,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         }
     }
 
-    fn update_prl_entry(&mut self, event: HistoryEvent)
+    fn update_traded_prl_entry(&mut self, event: HistoryEvent)
     {
         let price = event.price;
         let event = event.order_info;

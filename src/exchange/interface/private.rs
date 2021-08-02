@@ -8,8 +8,7 @@ use crate::message::{CancellationReason, ExchangeReply};
 use crate::message::ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted};
 use crate::order::{MarketOrder, Order, PricedOrder};
 use crate::trader::Trader;
-use crate::types::{Duration, Timestamp};
-use crate::types::{OrderDirection, OrderID, OrderSize, Price};
+use crate::types::{Duration, OrderDirection, OrderID, OrderSize, Price, Timestamp};
 
 #[derive(Eq, PartialEq)]
 pub(crate) enum AggressiveOrderType {

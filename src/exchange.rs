@@ -5,8 +5,7 @@ use crate::exchange::types::{EventQueue, OrderBookLevel};
 use crate::history::parser::HistoryParser;
 use crate::order::MarketOrder;
 use crate::trader::Trader;
-use crate::types::{OrderDirection, OrderID, Price};
-use crate::types::Timestamp;
+use crate::types::{OrderDirection, OrderID, Price, Timestamp};
 
 pub(crate) mod interface;
 pub(crate) mod types;

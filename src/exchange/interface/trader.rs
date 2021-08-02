@@ -9,8 +9,7 @@ use crate::history::types::OrderOrigin;
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason};
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::Trader;
-use crate::types::{Duration, Timestamp};
-use crate::types::{OrderDirection, OrderID};
+use crate::types::{Duration, OrderDirection, OrderID, Timestamp};
 
 impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,

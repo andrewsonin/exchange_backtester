@@ -4,8 +4,7 @@ use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
 use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
 use crate::order::Order;
 use crate::trader::Trader;
-use crate::types::{OrderDirection, OrderSize};
-use crate::types::Timestamp;
+use crate::types::{OrderDirection, OrderSize, Timestamp};
 
 impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,

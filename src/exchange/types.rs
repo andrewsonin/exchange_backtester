@@ -3,8 +3,7 @@ use std::collections::{BinaryHeap, LinkedList};
 
 use crate::history::types::{HistoryEvent, OrderOrigin};
 use crate::message::{ExchangeReply, TraderRequest};
-use crate::types::{OrderID, OrderSize, Price};
-use crate::types::Timestamp;
+use crate::types::{OrderID, OrderSize, Price, Timestamp};
 
 pub(crate) struct OrderBookLevel {
     pub(crate) price: Price,

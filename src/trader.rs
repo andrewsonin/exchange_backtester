@@ -11,4 +11,3 @@ pub trait Trader {
     fn set_new_trading_period(&mut self);
     fn wakeup(&mut self, timestamp: Timestamp) -> Vec<TraderRequest>;
 }
-

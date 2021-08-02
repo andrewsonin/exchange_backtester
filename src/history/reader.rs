@@ -4,22 +4,24 @@ use std::io::{BufRead, BufReader};
 
 use csv::ReaderBuilder;
 
-use crate::cli::ArgumentParser;
+use crate::cli::InputInterface;
 use crate::history::types::{HistoryColumnIndexInfo, HistoryEventWithTime, HistoryTickType};
 use crate::utils::ExpectWith;
 
 pub(crate)
-struct HistoryReader<'a, const TICK_TYPE: HistoryTickType>
+struct HistoryReader<'a, const TICK_TYPE: HistoryTickType, ParsingInfo>
+    where ParsingInfo: InputInterface
 {
     files_to_parse: VecDeque<String>,
     buffered_entries: VecDeque<HistoryEventWithTime>,
-    args: &'a ArgumentParser,
+    args: &'a ParsingInfo,
 }
 
-impl<const TICK_TYPE: HistoryTickType> HistoryReader<'_, TICK_TYPE>
+impl<const TICK_TYPE: HistoryTickType, ParsingInfo> HistoryReader<'_, TICK_TYPE, ParsingInfo>
+    where ParsingInfo: InputInterface
 {
     pub(crate)
-    fn new<'a>(files_to_parse: &str, args: &'a ArgumentParser) -> HistoryReader<'a, TICK_TYPE>
+    fn new<'a>(files_to_parse: &str, args: &'a ParsingInfo) -> HistoryReader<'a, TICK_TYPE, ParsingInfo>
     {
         let files_to_parse: VecDeque<String> = {
             let file = File::open(files_to_parse).expect_with(
@@ -66,11 +68,11 @@ impl<const TICK_TYPE: HistoryTickType> HistoryReader<'_, TICK_TYPE>
             || format!("Cannot read the following file: {}", file_to_read)
         );
         let col_idx_info = HistoryColumnIndexInfo::new_for_csv(&file_to_read, self.args);
-        let price_step = self.args.price_step;
-        let datetime_format = &self.args.datetime_format;
+        let price_step = self.args.get_price_step();
+        let datetime_format = self.args.get_datetime_format();
         self.buffered_entries.extend(
             ReaderBuilder::new()
-                .delimiter(self.args.csv_sep as u8)
+                .delimiter(self.args.get_csv_sep() as u8)
                 .from_reader(cur_file_content.as_bytes())
                 .records()
                 .zip(2..)

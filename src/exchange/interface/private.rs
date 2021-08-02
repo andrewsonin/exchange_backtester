@@ -2,6 +2,7 @@ use std::cmp::{Ordering, Reverse};
 
 use chrono::{Duration, NaiveDateTime};
 
+use crate::cli::InputInterface;
 use crate::exchange::types::{Event, EventBody, OrderBookEntry, OrderBookLevel};
 use crate::history::types::{HistoryEventWithTime, OrderOrigin};
 use crate::message::{CancellationReason, ExchangeReply};
@@ -17,10 +18,11 @@ pub(crate) enum AggressiveOrderType {
     MarketOrder,
 }
 
-impl<T, TTC, NSC> Exchange<'_, T, TTC, NSC>
+impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,
           TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool
+          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          PInfo: InputInterface
 {
     pub(crate)
     fn cleanup(&mut self) {

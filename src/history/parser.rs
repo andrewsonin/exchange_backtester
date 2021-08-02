@@ -1,24 +1,27 @@
-use crate::cli::ArgumentParser;
+use crate::cli::InputInterface;
 use crate::history::reader::HistoryReader;
 use crate::history::types::{HistoryEventWithTime, HistoryTickType};
 
 const PRL: HistoryTickType = HistoryTickType::PRL;
 const TRD: HistoryTickType = HistoryTickType::TRD;
 
-pub(crate) struct HistoryParser<'a>
+pub(crate) struct HistoryParser<'a, ParsingInfo>
+    where ParsingInfo: InputInterface
 {
-    prl_parser: HistoryReader<'a, PRL>,
-    trd_parser: HistoryReader<'a, TRD>,
+    prl_parser: HistoryReader<'a, PRL, ParsingInfo>,
+    trd_parser: HistoryReader<'a, TRD, ParsingInfo>,
 
     last_prl: Option<HistoryEventWithTime>,
     last_trd: Option<HistoryEventWithTime>,
 }
 
-impl HistoryParser<'_> {
-    pub fn new(args: &ArgumentParser) -> HistoryParser
+impl<ParsingInfo> HistoryParser<'_, ParsingInfo>
+    where ParsingInfo: InputInterface
+{
+    pub fn new(args: &ParsingInfo) -> HistoryParser<ParsingInfo>
     {
-        let mut prl_parser = HistoryReader::new(&args.prl_files, args);
-        let mut trd_parser = HistoryReader::new(&args.trd_files, args);
+        let mut prl_parser = HistoryReader::new(args.get_prl_files(), args);
+        let mut trd_parser = HistoryReader::new(args.get_trd_files(), args);
         let last_prl = prl_parser.next();
         let last_trd = trd_parser.next();
         HistoryParser {

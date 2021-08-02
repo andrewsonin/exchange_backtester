@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::NaiveDateTime;
 use csv::{ReaderBuilder, StringRecord};
 
-use crate::cli::ArgumentParser;
+use crate::cli::InputInterface;
 use crate::order::{Order, OrderInfo, PricedOrder};
 use crate::types::{OrderDirection, OrderID, OrderSize, Price};
 use crate::utils::ExpectWith;
@@ -99,7 +99,9 @@ impl HistoryEventWithTime
 
 impl HistoryColumnIndexInfo
 {
-    pub(crate) fn new_for_csv(path: &str, args: &ArgumentParser) -> HistoryColumnIndexInfo
+    pub(crate)
+    fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> HistoryColumnIndexInfo
+        where ParsingInfo: InputInterface
     {
         let mut order_id_idx: Option<usize> = None;
         let mut timestamp_idx: Option<usize> = None;
@@ -107,14 +109,14 @@ impl HistoryColumnIndexInfo
         let mut price_idx: Option<usize> = None;
         let mut buy_sell_flag_idx: Option<usize> = None;
 
-        let order_id_colname = &args.order_id_colname;
-        let timestamp_colname = &args.order_timestamp_colname;
-        let size_colname = &args.order_size_colname;
-        let price_colname = &args.order_price_colname;
-        let bs_flag_colname = &args.order_bs_flag_colname;
+        let order_id_colname = args.get_order_id_colname();
+        let timestamp_colname = args.get_order_timestamp_colname();
+        let size_colname = args.get_order_size_colname();
+        let price_colname = args.get_order_price_colname();
+        let bs_flag_colname = args.get_order_bs_flag_colname();
 
         for (i, header) in ReaderBuilder::new()
-            .delimiter(args.csv_sep as u8)
+            .delimiter(args.get_csv_sep() as u8)
             .from_path(path)
             .expect_with(|| format!("Cannot read the following file: {}", path))
             .headers()

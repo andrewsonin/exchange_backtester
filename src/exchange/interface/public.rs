@@ -1,22 +1,23 @@
 use chrono::NaiveDateTime;
 
-use crate::cli::ArgumentParser;
+use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::types::EventBody;
 use crate::history::parser::HistoryParser;
 use crate::message::TraderRequest;
 use crate::trader::Trader;
 
-impl<'a, T, TTC, NSC> Exchange<'a, T, TTC, NSC>
+impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo>
     where T: Trader,
           TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool
+          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          PInfo: InputInterface
 {
     pub
-    fn new(args: &'a ArgumentParser,
+    fn new(args: &'a PInfo,
            trader: &'a mut T,
            is_trading_time: TTC,
-           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC>
+           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo>
     {
         let mut history_reader = HistoryParser::new(args);
         let first_event = match history_reader.yield_next_event() {

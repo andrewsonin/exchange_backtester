@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
 
+use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
 use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
@@ -7,10 +8,11 @@ use crate::order::Order;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderSize};
 
-impl<T, TTC, NSC> Exchange<'_, T, TTC, NSC>
+impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,
           TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool
+          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          PInfo: InputInterface
 {
     pub(crate)
     fn handle_history_event(&mut self, event: HistoryEvent)

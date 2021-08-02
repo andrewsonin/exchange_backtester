@@ -3,6 +3,7 @@ use std::collections::hash_map::Entry;
 
 use chrono::{Duration, NaiveDateTime};
 
+use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::interface::private::AggressiveOrderType;
 use crate::exchange::types::{Event, EventBody};
@@ -12,10 +13,11 @@ use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderID};
 
-impl<T, TTC, NSC> Exchange<'_, T, TTC, NSC>
+impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,
           TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool
+          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          PInfo: InputInterface
 {
     pub(crate) fn handle_wakeup(&mut self)
     {

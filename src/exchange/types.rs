@@ -1,11 +1,10 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, LinkedList};
 
-use chrono::NaiveDateTime as Timestamp;
-
 use crate::history::types::{HistoryEvent, OrderOrigin};
 use crate::message::{ExchangeReply, TraderRequest};
 use crate::types::{OrderID, OrderSize, Price};
+use crate::types::Timestamp;
 
 pub(crate) struct OrderBookLevel {
     pub(crate) price: Price,

@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+pub use chrono::{Duration, NaiveDateTime as Timestamp};
 use derive_more::{Add, AddAssign, Sub, SubAssign, Sum};
 
 use crate::utils::ExpectWith;

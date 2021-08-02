@@ -1,8 +1,7 @@
 use std::num::NonZeroU64;
 
-use chrono::NaiveDateTime as Timestamp;
-
 use crate::message::{ExchangeReply, TraderRequest};
+use crate::types::Timestamp;
 
 pub trait Trader {
     fn get_latency(&self) -> u64;

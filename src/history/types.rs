@@ -1,11 +1,11 @@
 use std::str::FromStr;
 
-use chrono::NaiveDateTime as Timestamp;
 use csv::{ReaderBuilder, StringRecord};
 
 use crate::cli::InputInterface;
 use crate::order::{Order, OrderInfo, PricedOrder};
 use crate::types::{OrderDirection, OrderID, OrderSize, Price};
+use crate::types::Timestamp;
 use crate::utils::ExpectWith;
 
 #[derive(Clone, Copy, Eq, PartialEq)]

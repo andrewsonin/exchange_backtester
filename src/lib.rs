@@ -11,10 +11,9 @@ pub mod trader;
 pub mod message;
 
 pub mod prelude {
-    pub use chrono::NaiveDateTime as Timestamp;
-
     pub use crate::cli::*;
     pub use crate::exchange::Exchange;
     pub use crate::message::*;
     pub use crate::trader::*;
+    pub use crate::types::Timestamp;
 }

@@ -1,13 +1,12 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
-use chrono::NaiveDateTime as Timestamp;
-
 use crate::cli::InputInterface;
 use crate::exchange::types::{EventQueue, OrderBookLevel};
 use crate::history::parser::HistoryParser;
 use crate::order::MarketOrder;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderID, Price};
+use crate::types::Timestamp;
 
 pub(crate) mod interface;
 pub(crate) mod types;

@@ -1,11 +1,10 @@
-use chrono::NaiveDateTime as Timestamp;
-
 use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::types::EventBody;
 use crate::history::parser::HistoryParser;
 use crate::message::TraderRequest;
 use crate::trader::Trader;
+use crate::types::Timestamp;
 
 impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo>
     where T: Trader,

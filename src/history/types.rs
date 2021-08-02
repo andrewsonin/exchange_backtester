@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use chrono::NaiveDateTime;
+use chrono::NaiveDateTime as Timestamp;
 use csv::{ReaderBuilder, StringRecord};
 
 use crate::cli::InputInterface;
@@ -30,7 +30,7 @@ pub(crate) enum HistoryTickType {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub(crate) struct HistoryEventWithTime
 {
-    pub(crate) timestamp: NaiveDateTime,
+    pub(crate) timestamp: Timestamp,
     pub(crate) event: HistoryEvent,
 }
 
@@ -69,7 +69,7 @@ impl HistoryEventWithTime
         let size = &record[col_idx_info.size_idx];
         let bs_flag = &record[col_idx_info.buy_sell_flag_idx];
         HistoryEventWithTime {
-            timestamp: NaiveDateTime::parse_from_str(timestamp, dt_format).expect_with(
+            timestamp: Timestamp::parse_from_str(timestamp, dt_format).expect_with(
                 || format!("Cannot parse to NaiveDateTime: {}. Datetime format used: {}", timestamp, dt_format)
             ),
             event: HistoryEvent {

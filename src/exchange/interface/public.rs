@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::NaiveDateTime as Timestamp;
 
 use crate::cli::InputInterface;
 use crate::exchange::Exchange;
@@ -9,8 +9,8 @@ use crate::trader::Trader;
 
 impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo>
     where T: Trader,
-          TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          TTC: Fn(Timestamp) -> bool,
+          NSC: Fn(Timestamp, Timestamp) -> bool,
           PInfo: InputInterface
 {
     pub

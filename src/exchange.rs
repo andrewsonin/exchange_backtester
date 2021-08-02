@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
-use chrono::NaiveDateTime;
+use chrono::NaiveDateTime as Timestamp;
 
 use crate::cli::InputInterface;
 use crate::exchange::types::{EventQueue, OrderBookLevel};
@@ -14,8 +14,8 @@ pub(crate) mod types;
 
 pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInfo>
     where T: Trader,
-          TradingTimeCriterion: Fn(NaiveDateTime) -> bool,
-          NewSessionCriterion: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          TradingTimeCriterion: Fn(Timestamp) -> bool,
+          NewSessionCriterion: Fn(Timestamp, Timestamp) -> bool,
           ParsingInfo: InputInterface
 {
     event_queue: EventQueue,
@@ -30,7 +30,7 @@ pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInf
     trader_pending_limit_orders: HashMap<OrderID, (Price, OrderDirection)>,
     trader_submitted_orders: HashSet<OrderID>,
 
-    current_time: NaiveDateTime,
+    current_time: Timestamp,
     _is_next_session: NewSessionCriterion,
     _is_trading_time: TradingTimeCriterion,
 }

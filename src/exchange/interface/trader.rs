@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 
-use chrono::{Duration, NaiveDateTime};
+use chrono::{Duration, NaiveDateTime as Timestamp};
 
 use crate::cli::InputInterface;
 use crate::exchange::Exchange;
@@ -15,8 +15,8 @@ use crate::types::{OrderDirection, OrderID};
 
 impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,
-          TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          TTC: Fn(Timestamp) -> bool,
+          NSC: Fn(Timestamp, Timestamp) -> bool,
           PInfo: InputInterface
 {
     pub(crate) fn handle_wakeup(&mut self)

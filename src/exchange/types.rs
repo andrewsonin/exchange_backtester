@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, LinkedList};
 
-use chrono::NaiveDateTime;
+use chrono::NaiveDateTime as Timestamp;
 
 use crate::history::types::{HistoryEvent, OrderOrigin};
 use crate::message::{ExchangeReply, TraderRequest};
@@ -22,7 +22,7 @@ pub(crate) type EventQueue = BinaryHeap<Reverse<Event>>;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct Event {
-    pub(crate) timestamp: NaiveDateTime,
+    pub(crate) timestamp: Timestamp,
     pub(crate) body: EventBody,
 }
 

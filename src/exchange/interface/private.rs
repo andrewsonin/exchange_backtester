@@ -1,6 +1,6 @@
 use std::cmp::{Ordering, Reverse};
 
-use chrono::{Duration, NaiveDateTime};
+use chrono::{Duration, NaiveDateTime as Timestamp};
 
 use crate::cli::InputInterface;
 use crate::exchange::Exchange;
@@ -20,8 +20,8 @@ pub(crate) enum AggressiveOrderType {
 
 impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
     where T: Trader,
-          TTC: Fn(NaiveDateTime) -> bool,
-          NSC: Fn(NaiveDateTime, NaiveDateTime) -> bool,
+          TTC: Fn(Timestamp) -> bool,
+          NSC: Fn(Timestamp, Timestamp) -> bool,
           PInfo: InputInterface
 {
     pub(crate)
@@ -225,7 +225,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         (self._is_trading_time)(self.current_time)
     }
 
-    pub(crate) fn is_next_session(&self, next_time: NaiveDateTime) -> bool {
+    pub(crate) fn is_next_session(&self, next_time: Timestamp) -> bool {
         (self._is_next_session)(self.current_time, next_time)
     }
 
@@ -251,7 +251,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         )
     }
 
-    pub(crate) fn set_new_trading_period(&mut self, first_event_time: NaiveDateTime)
+    pub(crate) fn set_new_trading_period(&mut self, first_event_time: Timestamp)
     {
         self.trader.set_new_trading_period();
         let trader_next_wakeup = first_event_time + Duration::nanoseconds(self.trader.get_wakeup_frequency().get() as i64);

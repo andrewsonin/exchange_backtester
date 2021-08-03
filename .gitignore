@@ -5,5 +5,12 @@
 # its dependencies, but let the downstream crate decide.
 Cargo.lock
 
+# macOS Finder files
 .DS_Store
+
+# IntelliJ Idea files
 /.idea/
+
+# Temporary files for testing
+/tests/*/*/PRL.txt
+/tests/*/*/TRD.txt

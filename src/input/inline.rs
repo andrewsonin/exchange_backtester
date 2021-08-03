@@ -32,45 +32,45 @@ impl Default for StaticInput {
 }
 
 impl StaticInput {
-    fn new() -> Self { Default::default() }
+    pub fn new() -> Self { Default::default() }
 
-    fn with_prl_files(mut self, prl_files: &str) -> Self {
+    pub fn with_prl_files(mut self, prl_files: &str) -> Self {
         self.prl_files = prl_files.to_string();
         self
     }
-    fn with_trd_files(mut self, trd_files: &str) -> Self {
+    pub fn with_trd_files(mut self, trd_files: &str) -> Self {
         self.trd_files = trd_files.to_string();
         self
     }
-    fn with_ts_colname(mut self, order_timestamp_colname: &str) -> Self {
+    pub fn with_ts_colname(mut self, order_timestamp_colname: &str) -> Self {
         self.order_timestamp_colname = order_timestamp_colname.to_string();
         self
     }
-    fn with_id_colname(mut self, order_id_colname: &str) -> Self {
+    pub fn with_id_colname(mut self, order_id_colname: &str) -> Self {
         self.order_id_colname = order_id_colname.to_string();
         self
     }
-    fn with_price_colname(mut self, order_price_colname: &str) -> Self {
+    pub fn with_price_colname(mut self, order_price_colname: &str) -> Self {
         self.order_price_colname = order_price_colname.to_string();
         self
     }
-    fn with_size_colname(mut self, order_size_colname: &str) -> Self {
+    pub fn with_size_colname(mut self, order_size_colname: &str) -> Self {
         self.order_size_colname = order_size_colname.to_string();
         self
     }
-    fn with_bs_flag_colname(mut self, order_bs_flag_colname: &str) -> Self {
+    pub fn with_bs_flag_colname(mut self, order_bs_flag_colname: &str) -> Self {
         self.order_bs_flag_colname = order_bs_flag_colname.to_string();
         self
     }
-    fn with_datetime_format(mut self, datetime_format: &str) -> Self {
+    pub fn with_datetime_format(mut self, datetime_format: &str) -> Self {
         self.datetime_format = datetime_format.to_string();
         self
     }
-    fn with_csv_sep(mut self, csv_sep: char) -> Self {
+    pub fn with_csv_sep(mut self, csv_sep: char) -> Self {
         self.csv_sep = csv_sep;
         self
     }
-    fn with_price_step(mut self, price_step: f64) -> Self {
+    pub fn with_price_step(mut self, price_step: f64) -> Self {
         self.price_step = price_step;
         self
     }

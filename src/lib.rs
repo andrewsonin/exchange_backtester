@@ -14,7 +14,8 @@ pub mod input;
 pub mod prelude {
     pub use crate::cli::ArgumentParser;
     pub use crate::exchange::Exchange;
+    pub use crate::input::*;
     pub use crate::message::*;
     pub use crate::trader::*;
-    pub use crate::types::Timestamp;
+    pub use crate::types::*;
 }

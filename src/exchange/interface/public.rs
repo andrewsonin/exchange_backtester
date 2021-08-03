@@ -6,7 +6,7 @@ use crate::message::TraderRequest;
 use crate::trader::Trader;
 use crate::types::Timestamp;
 
-impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo>
+impl<'a, T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           NSC: Fn(Timestamp, Timestamp) -> bool,
@@ -16,7 +16,7 @@ impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo>
     fn new(args: &'a PInfo,
            trader: &'a mut T,
            is_trading_time: TTC,
-           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo>
+           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
     {
         let mut history_reader = HistoryParser::new(args);
         let first_event = match history_reader.yield_next_event() {

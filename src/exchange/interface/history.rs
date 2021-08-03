@@ -6,7 +6,7 @@ use crate::order::Order;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderSize, Timestamp};
 
-impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
+impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEBUG>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           NSC: Fn(Timestamp, Timestamp) -> bool,
@@ -60,17 +60,19 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 }
                 match cursor.remove_current() {
                     None => {
-                        eprintln!(
-                            "Timestamp: {} :: \
-                            remove_prl_entry :: \
-                            Order with such ID does not exists at the OB level with corresponding price: {:?}",
-                            self.current_time,
-                            event.get_order_id()
-                        )
+                        if DEBUG {
+                            eprintln!(
+                                "Timestamp: {} :: \
+                                remove_prl_entry :: \
+                                Order with such ID does not exists at the OB level with corresponding price: {:?}",
+                                self.current_time,
+                                event.get_order_id()
+                            )
+                        }
                     }
                     _ => { deleted = true; }
                 }
-                if !self.history_order_ids.remove(&event.get_order_id()) {
+                if DEBUG && !self.history_order_ids.remove(&event.get_order_id()) {
                     eprintln!(
                         "Timestamp: {} :: \
                         remove_prl_entry :: \
@@ -82,7 +84,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 break;
             }
         }
-        if !deleted {
+        if DEBUG && !deleted {
             eprintln!(
                 "Timestamp: {} :: remove_prl_entry :: History order has not been deleted: {:?}",
                 self.current_time,
@@ -106,13 +108,15 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         {
             Some(ob_level) => { ob_level }
             None => {
-                eprintln!(
-                    "Timestamp: {} :: \
-                    update_traded_prl_entry :: \
-                    OB level with such price does not exists: {:?}",
-                    self.current_time,
-                    event.order_id
-                );
+                if DEBUG {
+                    eprintln!(
+                        "Timestamp: {} \
+                        ::  update_traded_prl_entry \
+                        :: OB level with such price does not exists: {:?}",
+                        self.current_time,
+                        event.order_id
+                    );
+                }
                 return;
             }
         };
@@ -124,13 +128,15 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         {
             Some(order) => { order }
             None => {
-                eprintln!(
-                    "Timestamp: {} \
-                    :: update_traded_prl_entry \
-                    :: OB level does not contain history order with such ID: {:?}",
-                    self.current_time,
-                    event.order_id
-                );
+                if DEBUG {
+                    eprintln!(
+                        "Timestamp: {} \
+                         :: update_traded_prl_entry \
+                         :: OB level does not contain history order with such ID: {:?}",
+                        self.current_time,
+                        event.order_id
+                    );
+                }
                 return;
             }
         };
@@ -175,7 +181,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                     event.size = OrderSize(0);
                     level_cursor.move_next();
                 }
-                if check_ref_order {
+                if DEBUG && check_ref_order {
                     if event.order_id != limit_order_id {
                         eprintln!(
                             "Timestamp: {} :: \
@@ -221,12 +227,14 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 return;
             }
         }
-        eprintln!(
-            "Timestamp: {} :: handle_trd_event :: \
-            market order with {:?} did not fully executed. Its remaining size: {:?}",
-            self.current_time,
-            event.order_id,
-            event.size
-        )
+        if DEBUG {
+            eprintln!(
+                "Timestamp: {} :: handle_trd_event :: \
+                market order with {:?} did not fully executed. Its remaining size: {:?}",
+                self.current_time,
+                event.order_id,
+                event.size
+            )
+        }
     }
 }

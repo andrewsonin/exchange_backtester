@@ -10,7 +10,7 @@ use crate::types::{OrderDirection, OrderID, Price, Timestamp};
 pub(crate) mod interface;
 pub(crate) mod types;
 
-pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInfo>
+pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInfo, const DEBUG: bool>
     where T: Trader,
           TradingTimeCriterion: Fn(Timestamp) -> bool,
           NewSessionCriterion: Fn(Timestamp, Timestamp) -> bool,

@@ -16,7 +16,7 @@ pub(crate) enum AggressiveOrderType {
     MarketOrder,
 }
 
-impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
+impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEBUG>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           NSC: Fn(Timestamp, Timestamp) -> bool,

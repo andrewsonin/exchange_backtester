@@ -1,3 +1,4 @@
+pub use std::num::NonZeroU64;
 use std::str::FromStr;
 
 pub use chrono::{Duration, NaiveDateTime as Timestamp};

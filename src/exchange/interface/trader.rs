@@ -33,7 +33,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                     )
                 )
         );
-        let trader_next_wakeup = current_time + Duration::nanoseconds(self.trader.get_wakeup_frequency().get() as i64);
+        let trader_next_wakeup = current_time + Duration::nanoseconds(self.trader.get_wakeup_frequency_ns().get() as i64);
         if (self._is_trading_time)(trader_next_wakeup) {
             self.event_queue.push(
                 Reverse(

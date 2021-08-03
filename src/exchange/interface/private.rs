@@ -111,8 +111,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
         match ORDER_ORIGIN {
             AggressiveOrderType::IntersectingLimitOrder => {
                 eprintln!(
-                    "Timestamp :: {} :: submit_aggressive_order :: \
-                    Error in the program logic. Intersecting market order {:?} has not been fully executed",
+                    "Timestamp :: {} :: submit_aggressive_order :: ERROR :: \
+                    Intersecting market order {:?} has not been fully executed",
                     self.current_time,
                     order.get_order_id()
                 )

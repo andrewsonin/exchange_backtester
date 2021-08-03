@@ -14,17 +14,17 @@ pub(crate) trait PricedOrder
     fn get_price(&self) -> Price;
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Debug)]
 pub(crate) struct OrderInfo {
     pub order_id: OrderID,
     pub size: OrderSize,
     pub direction: OrderDirection,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct MarketOrder(OrderInfo);
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct LimitOrder {
     info: OrderInfo,
     price: Price,

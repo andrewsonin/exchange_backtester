@@ -1,7 +1,7 @@
 pub use std::num::NonZeroU64;
 use std::str::FromStr;
 
-pub use chrono::{Duration, NaiveDateTime as Timestamp};
+pub use chrono::{Duration, NaiveDateTime as Timestamp, Timelike};
 use derive_more::{Add, AddAssign, Sub, SubAssign, Sum};
 
 use crate::utils::ExpectWith;
@@ -15,7 +15,7 @@ pub struct OrderID(pub u64);
 #[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sum, Sub, AddAssign, SubAssign)]
 pub struct OrderSize(pub u64);
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
 pub enum OrderDirection {
     Buy,
     Sell,

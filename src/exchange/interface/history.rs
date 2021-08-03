@@ -62,8 +62,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                     None => {
                         if DEBUG {
                             eprintln!(
-                                "Timestamp: {} :: \
-                                remove_prl_entry :: \
+                                "{} :: \
+                                remove_prl_entry :: ERROR in case of non-trading Trader :: \
                                 Order with such ID does not exists at the OB level with corresponding price: {:?}",
                                 self.current_time,
                                 event.get_order_id()
@@ -74,8 +74,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                 }
                 if DEBUG && !self.history_order_ids.remove(&event.get_order_id()) {
                     eprintln!(
-                        "Timestamp: {} :: \
-                        remove_prl_entry :: \
+                        "{} :: \
+                        remove_prl_entry :: ERROR in case of non-trading Trader :: \
                         History order HashSet does not contain such ID: {:?}",
                         self.current_time,
                         event.get_order_id()
@@ -86,7 +86,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
         }
         if DEBUG && !deleted {
             eprintln!(
-                "Timestamp: {} :: remove_prl_entry :: History order has not been deleted: {:?}",
+                "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
+                :: History order has not been deleted: {:?}",
                 self.current_time,
                 event.get_order_id()
             )
@@ -110,8 +111,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             None => {
                 if DEBUG {
                     eprintln!(
-                        "Timestamp: {} \
-                        ::  update_traded_prl_entry \
+                        "{} \
+                        :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                         :: OB level with such price does not exists: {:?}",
                         self.current_time,
                         event.order_id
@@ -130,8 +131,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             None => {
                 if DEBUG {
                     eprintln!(
-                        "Timestamp: {} \
-                         :: update_traded_prl_entry \
+                        "{} \
+                         :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                          :: OB level does not contain history order with such ID: {:?}",
                         self.current_time,
                         event.order_id
@@ -184,8 +185,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                 if DEBUG && check_ref_order {
                     if event.order_id != limit_order_id {
                         eprintln!(
-                            "Timestamp: {} :: \
-                            handle_trd_event :: \
+                            "{} :: \
+                            handle_trd_event :: ERROR in case of non-trading Trader :: \
                             market order {:?} matched with limit order {:?}",
                             self.current_time,
                             event.order_id,
@@ -194,8 +195,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                     }
                     if price != limit_price {
                         eprintln!(
-                            "Timestamp: {} :: \
-                            handle_trd_event :: \
+                            "{} :: \
+                            handle_trd_event :: ERROR in case of non-trading Trader :: \
                             market order with {:?} matched with limit order with {:?}",
                             self.current_time,
                             price,
@@ -204,8 +205,8 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                     }
                     if event.size != OrderSize(0) {
                         eprintln!(
-                            "Timestamp: {} :: \
-                            handle_trd_event :: \
+                            "{} :: \
+                            handle_trd_event :: ERROR in case of non-trading Trader :: \
                             market order with {:?} did not fully match with limit order {:?}",
                             self.current_time,
                             event.order_id,
@@ -229,7 +230,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
         }
         if DEBUG {
             eprintln!(
-                "Timestamp: {} :: handle_trd_event :: \
+                "{} :: handle_trd_event :: ERROR in case of non-trading Trader :: \
                 market order with {:?} did not fully executed. Its remaining size: {:?}",
                 self.current_time,
                 event.order_id,

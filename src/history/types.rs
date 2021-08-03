@@ -13,14 +13,14 @@ pub(crate) enum OrderOrigin {
     Trader,
 }
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
 pub(crate) struct HistoryEvent {
     pub(crate) tick_type: HistoryTickType,
     pub(crate) price: Price,
     pub(crate) order_info: OrderInfo,
 }
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
 pub(crate) enum HistoryTickType {
     TRD,
     PRL,

@@ -18,13 +18,13 @@ pub(crate) struct OrderBookEntry {
 
 pub(crate) type EventQueue = BinaryHeap<Reverse<Event>>;
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct Event {
     pub(crate) timestamp: Timestamp,
     pub(crate) body: EventBody,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum EventBody {
     HistoryEvent(HistoryEvent),
     TraderRequest(TraderRequest),

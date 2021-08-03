@@ -1,7 +1,7 @@
 use crate::order::{LimitOrder, MarketOrder};
 use crate::types::{OrderID, OrderSize, Price};
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum TraderRequest {
     CancelLimitOrder(OrderID),
     CancelMarketOrder(OrderID),
@@ -9,7 +9,7 @@ pub enum TraderRequest {
     PlaceMarketOrder(MarketOrder),
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum ExchangeReply {
     OrderAccepted(OrderID),
     OrderPlacementDiscarded(OrderID, DiscardingReason),
@@ -19,20 +19,20 @@ pub enum ExchangeReply {
     CannotCancelOrder(OrderID, InabilityToCancelReason),
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum DiscardingReason {
     OrderWithSuchIDAlreadySubmitted,
     ZeroSize,
     ExchangeClosed,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum CancellationReason {
     TraderRequested,
     ExchangeClosed,
 }
 
-#[derive(Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum InabilityToCancelReason {
     OrderHasNotBeenSubmitted,
     OrderAlreadyExecuted,

@@ -6,7 +6,7 @@ use crate::message::TraderRequest;
 use crate::trader::Trader;
 use crate::types::Timestamp;
 
-impl<'a, T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
+impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo, false>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           NSC: Fn(Timestamp, Timestamp) -> bool,
@@ -16,7 +16,36 @@ impl<'a, T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'a, T, TTC, NSC, PInfo,
     fn new(args: &'a PInfo,
            trader: &'a mut T,
            is_trading_time: TTC,
-           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
+           is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo, false> {
+        Exchange::build(args, trader, is_trading_time, is_next_session)
+    }
+}
+
+impl<'a, T, TTC, NSC, PInfo> Exchange<'a, T, TTC, NSC, PInfo, true>
+    where T: Trader,
+          TTC: Fn(Timestamp) -> bool,
+          NSC: Fn(Timestamp, Timestamp) -> bool,
+          PInfo: InputInterface
+{
+    pub
+    fn new_debug(args: &'a PInfo,
+                 trader: &'a mut T,
+                 is_trading_time: TTC,
+                 is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo, true> {
+        Exchange::build(args, trader, is_trading_time, is_next_session)
+    }
+}
+
+impl<'a, T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
+    where T: Trader,
+          TTC: Fn(Timestamp) -> bool,
+          NSC: Fn(Timestamp, Timestamp) -> bool,
+          PInfo: InputInterface
+{
+    fn build(args: &'a PInfo,
+             trader: &'a mut T,
+             is_trading_time: TTC,
+             is_next_session: NSC) -> Exchange<'a, T, TTC, NSC, PInfo, DEBUG>
     {
         let mut history_reader = HistoryParser::new(args);
         let first_event = match history_reader.yield_next_event() {
@@ -50,10 +79,16 @@ impl<'a, T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'a, T, TTC, NSC, PInfo,
         {
             let event = event.0;
             if self.is_next_session(event.timestamp) {
+                if DEBUG {
+                    eprintln!("{} :: run_trades :: CLEANUP", event.timestamp)
+                }
                 self.set_new_trading_period(event.timestamp);
                 self.cleanup()
             }
             self.current_time = event.timestamp;
+            if DEBUG {
+                eprintln!("{} :: run_trades :: EVENT :: {:?}", event.timestamp, event.body)
+            }
             match event.body {
                 EventBody::HistoryEvent(event) => { self.handle_history_event(event) }
                 EventBody::TraderRequest(request) => {

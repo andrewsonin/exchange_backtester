@@ -131,7 +131,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         let order = order.extract_body();
 
         if COME_FROM == OrderOrigin::Trader {
-            let ob_level_sum = |level: &OrderBookLevel|
+            let get_ob_level_size = |level: &OrderBookLevel|
                 level.queue.iter()
                     .map(|limit_order| limit_order.size)
                     .sum();
@@ -139,13 +139,13 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 OrderDirection::Buy => {
                     self.asks.iter()
                         .take_while(|level| level.price <= price)
-                        .map(ob_level_sum)
+                        .map(get_ob_level_size)
                         .sum()
                 }
                 OrderDirection::Sell => {
                     self.bids.iter()
                         .take_while(|level| level.price >= price)
-                        .map(ob_level_sum)
+                        .map(get_ob_level_size)
                         .sum()
                 }
             };

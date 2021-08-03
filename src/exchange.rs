@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
-use crate::cli::InputInterface;
 use crate::exchange::types::{EventQueue, OrderBookLevel};
 use crate::history::parser::HistoryParser;
+use crate::input::InputInterface;
 use crate::order::MarketOrder;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderID, Price, Timestamp};

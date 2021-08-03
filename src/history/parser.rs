@@ -1,6 +1,6 @@
-use crate::cli::InputInterface;
 use crate::history::reader::HistoryReader;
 use crate::history::types::{HistoryEventWithTime, HistoryTickType};
+use crate::input::InputInterface;
 
 const PRL: HistoryTickType = HistoryTickType::PRL;
 const TRD: HistoryTickType = HistoryTickType::TRD;

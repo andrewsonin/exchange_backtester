@@ -1,6 +1,6 @@
-use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
+use crate::input::InputInterface;
 use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
 use crate::order::Order;
 use crate::trader::Trader;

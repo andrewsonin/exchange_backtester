@@ -1,11 +1,11 @@
 use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 
-use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::interface::private::AggressiveOrderType;
 use crate::exchange::types::{Event, EventBody};
 use crate::history::types::OrderOrigin;
+use crate::input::InputInterface;
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason};
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::Trader;

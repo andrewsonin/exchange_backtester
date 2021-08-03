@@ -9,9 +9,10 @@ mod history;
 pub mod cli;
 pub mod trader;
 pub mod message;
+pub mod input;
 
 pub mod prelude {
-    pub use crate::cli::*;
+    pub use crate::cli::ArgumentParser;
     pub use crate::exchange::Exchange;
     pub use crate::message::*;
     pub use crate::trader::*;

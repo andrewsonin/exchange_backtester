@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use csv::{ReaderBuilder, StringRecord};
 
-use crate::cli::InputInterface;
+use crate::input::InputInterface;
 use crate::order::{Order, OrderInfo, PricedOrder};
 use crate::types::{OrderDirection, OrderID, OrderSize, Price, Timestamp};
 use crate::utils::ExpectWith;

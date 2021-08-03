@@ -4,8 +4,8 @@ use std::io::{BufRead, BufReader};
 
 use csv::ReaderBuilder;
 
-use crate::cli::InputInterface;
 use crate::history::types::{HistoryColumnIndexInfo, HistoryEventWithTime, HistoryTickType};
+use crate::input::InputInterface;
 use crate::utils::ExpectWith;
 
 pub(crate)

@@ -1,7 +1,7 @@
-use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::types::EventBody;
 use crate::history::parser::HistoryParser;
+use crate::input::InputInterface;
 use crate::message::TraderRequest;
 use crate::trader::Trader;
 use crate::types::Timestamp;

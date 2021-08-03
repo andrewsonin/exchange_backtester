@@ -1,9 +1,9 @@
 use std::cmp::{Ordering, Reverse};
 
-use crate::cli::InputInterface;
 use crate::exchange::Exchange;
 use crate::exchange::types::{Event, EventBody, OrderBookEntry, OrderBookLevel};
 use crate::history::types::{HistoryEventWithTime, OrderOrigin};
+use crate::input::InputInterface;
 use crate::message::{CancellationReason, ExchangeReply};
 use crate::message::ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted};
 use crate::order::{MarketOrder, Order, PricedOrder};

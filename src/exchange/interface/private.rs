@@ -46,7 +46,6 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                                                                         mut order: MarketOrder)
     {
         let self_ptr = self as *mut Self;
-        self.trader_submitted_orders.insert(order.get_order_id());
         let mut side_cursor = match order.get_order_direction() {
             OrderDirection::Buy => { self.asks.cursor_front_mut() }
             OrderDirection::Sell => { self.bids.cursor_front_mut() }
@@ -128,9 +127,50 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         where O: PricedOrder
     {
         let price = order.get_price();
-        let order = order.extract_body();
+        let mut order = order.extract_body();
 
         if COME_FROM == OrderOrigin::Trader {
+            // Check that the Exchange have pending market orders
+            let self_ptr = self as *mut Self;
+            let mut cursor = self.trader_pending_market_orders.cursor_front_mut();
+            while let Some(pending_order) = cursor.current() {
+                if pending_order.get_order_direction() != order.direction {
+                    let init_market_size = pending_order.get_order_size();
+
+                    type F = fn(OrderID, OrderSize, Price) -> ExchangeReply;
+                    let (market_status, limit_status, exec_size): (F, F, _) = match order.size.cmp(&init_market_size) {
+                        Ordering::Less => {
+                            (OrderPartiallyExecuted, OrderExecuted, order.size)
+                        }
+                        Ordering::Equal => {
+                            (OrderExecuted, OrderExecuted, order.size)
+                        }
+                        Ordering::Greater => {
+                            (OrderExecuted, OrderPartiallyExecuted, init_market_size)
+                        }
+                    };
+                    let mkt_reply = market_status(pending_order.get_order_id(), exec_size, price);
+                    let lim_reply = limit_status(order.order_id, exec_size, price);
+                    unsafe {
+                        (*self_ptr).schedule_reply_for_trader(mkt_reply);
+                        (*self_ptr).schedule_reply_for_trader(lim_reply)
+                    }
+                    if market_status != OrderExecuted {
+                        *pending_order.mut_order_size() -= exec_size;
+                    } else {
+                        cursor.remove_current();
+                    }
+                    if limit_status != OrderExecuted {
+                        order.size -= exec_size;
+                    } else {
+                        return;
+                    }
+                } else {
+                    cursor.move_next();
+                }
+            }
+
+            // Check that the Trader submitted LimitOrder that intersects the opposite side of the Order Book
             let get_ob_level_size = |level: &OrderBookLevel|
                 level.queue.iter()
                     .map(|limit_order| limit_order.size)
@@ -163,6 +203,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
             }
         }
 
+        // Insert Order in the Order Book
         let mut insert_new_level = true;
         let mut cursor = match order.direction {
             OrderDirection::Buy => {
@@ -206,13 +247,9 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 from: COME_FROM,
             }
         );
-        match COME_FROM {
-            OrderOrigin::History => { self.history_order_ids.insert(order.order_id); }
-            OrderOrigin::Trader => {
-                self.trader_submitted_orders.insert(order.order_id);
-                self.trader_pending_limit_orders.insert(order.order_id, (price, order.direction));
-            }
-        };
+        if COME_FROM == OrderOrigin::Trader {
+            self.trader_pending_limit_orders.insert(order.order_id, (price, order.direction));
+        }
     }
 
     fn insert_intersecting_limit(&mut self, order: MarketOrder) {

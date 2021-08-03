@@ -59,6 +59,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 DiscardingReason::OrderWithSuchIDAlreadySubmitted,
             )
         } else {
+            self.trader_submitted_orders.insert(order.get_order_id());
             self.insert_limit_order::<LimitOrder, { OrderOrigin::Trader }>(order);
             ExchangeReply::OrderAccepted(order_id)
         };
@@ -78,6 +79,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
                 DiscardingReason::OrderWithSuchIDAlreadySubmitted,
             )
         } else {
+            self.trader_submitted_orders.insert(order.get_order_id());
             self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }>(order);
             ExchangeReply::OrderAccepted(order_id)
         };

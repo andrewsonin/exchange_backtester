@@ -31,6 +31,7 @@ impl<T, TTC, NSC, PInfo> Exchange<'_, T, TTC, NSC, PInfo>
         } else if self.history_order_ids.contains(&event.get_order_id()) {
             self.update_traded_prl_entry(event)
         } else {
+            self.history_order_ids.insert(event.get_order_id());
             self.insert_limit_order::<HistoryEvent, { OrderOrigin::History }>(event)
         }
     }

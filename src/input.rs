@@ -1,3 +1,7 @@
+pub mod cli;
+pub mod inline;
+pub mod default;
+
 pub trait InputInterface {
     fn get_prl_files(&self) -> &str;
     fn get_trd_files(&self) -> &str;

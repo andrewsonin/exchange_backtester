@@ -1,6 +1,6 @@
 use crate::message::{ExchangeReply, TraderRequest};
-use crate::prelude::{Timestamp, Trader};
-use crate::types::NonZeroU64;
+use crate::trader::Trader;
+use crate::types::{NonZeroU64, Timestamp};
 
 const ONE_BILLION: NonZeroU64 = NonZeroU64::new(1_000_000_000).unwrap();
 

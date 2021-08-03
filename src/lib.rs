@@ -6,13 +6,11 @@ mod exchange;
 mod order;
 mod history;
 
-pub mod cli;
 pub mod trader;
 pub mod message;
 pub mod input;
 
 pub mod prelude {
-    pub use crate::cli::ArgumentParser;
     pub use crate::exchange::Exchange;
     pub use crate::input::*;
     pub use crate::message::*;

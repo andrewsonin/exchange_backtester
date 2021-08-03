@@ -1,5 +1,6 @@
 pub use clap::{AppSettings, Clap};
 
+use crate::input::default::*;
 use crate::input::InputInterface;
 
 /// Exchange backtesting framework
@@ -14,28 +15,28 @@ pub struct ArgumentParser {
     #[clap(short = 't', long = "--trd", required = true)]
     trd_files: String,
     /// Sets the name of the timestamp columns in the input csv files
-    #[clap(long = "--ts-colname", default_value = "Timestamp")]
+    #[clap(long = "--ts-colname", default_value = ORDER_TIMESTAMP_COLNAME)]
     order_timestamp_colname: String,
     /// Sets the name of the order ID columns in the input csv files
-    #[clap(long = "--id-colname", default_value = "ORDER_ID")]
+    #[clap(long = "--id-colname", default_value = ORDER_ID_COLNAME)]
     order_id_colname: String,
     /// Sets the name of the order price columns in the input csv files
-    #[clap(long = "--price-colname", default_value = "PRICE")]
+    #[clap(long = "--price-colname", default_value = ORDER_PRICE_COLNAME)]
     order_price_colname: String,
     /// Sets the name of the order size columns in the input csv files
-    #[clap(long = "--size-colname", default_value = "SIZE")]
+    #[clap(long = "--size-colname", default_value = ORDER_SIZE_COLNAME)]
     order_size_colname: String,
     /// Sets the name of the order buy-sell flag columns in the input csv files
-    #[clap(long = "--bs-flag-colname", default_value = "BUY_SELL_FLAG")]
+    #[clap(long = "--bs-flag-colname", default_value = ORDER_BS_FLAG_COLNAME)]
     order_bs_flag_colname: String,
     /// Sets the datetime format to parse timestamp columns
-    #[clap(short, long, default_value = "%Y-%m-%d %H:%M:%S%.f")]
+    #[clap(short, long, default_value = DATETIME_FORMAT)]
     datetime_format: String,
     /// CSV-file separator
-    #[clap(long, default_value = ",")]
+    #[clap(long, default_value = CSV_SEP)]
     csv_sep: char,
     /// Price step
-    #[clap(long, default_value = "0.0025")]
+    #[clap(long, default_value = PRICE_STEP)]
     price_step: f64,
 }
 

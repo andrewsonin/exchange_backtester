@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::message::TraderRequest;
-use crate::types::{NonZeroU64, NonZeroUsize, OrderSize, Price, Timestamp};
+use crate::types::{NonZeroU64, NonZeroUsize, Price, Size, Timestamp};
 
 #[derive(Eq, PartialEq)]
 pub struct SubscriptionConfig {
@@ -41,8 +41,8 @@ impl SubscriptionConfig {
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct OrderBookSnapshot {
-    pub bids: Vec<(Price, OrderSize)>,
-    pub asks: Vec<(Price, OrderSize)>,
+    pub bids: Vec<(Price, Size)>,
+    pub asks: Vec<(Price, Size)>,
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -52,9 +52,9 @@ pub struct TradeInfo {
     pub low: Price,
     pub close: Price,
 
-    pub volume: OrderSize,
-    pub buy_volume: OrderSize,
-    pub sell_volume: OrderSize,
+    pub volume: Size,
+    pub buy_volume: Size,
+    pub sell_volume: Size,
 
     pub price_to_volume_sorted: PriceToVolumeSorted,
 }
@@ -63,6 +63,6 @@ pub type PriceToVolumeSorted = BTreeMap<Price, TradeVolumesBin>;
 
 #[derive(Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
 pub struct TradeVolumesBin {
-    pub buy_aggressors: OrderSize,
-    pub sell_aggressors: OrderSize,
+    pub buy_aggressors: Size,
+    pub sell_aggressors: Size,
 }

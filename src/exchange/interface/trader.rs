@@ -9,7 +9,7 @@ use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, Inabil
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
-use crate::types::{Duration, OrderDirection, OrderID, Timestamp};
+use crate::types::{Direction, Duration, OrderID, Timestamp};
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
 Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
@@ -97,8 +97,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 Entry::Occupied(value) => {
                     let (price, direction) = value.get();
                     let mut side_cursor = match direction {
-                        OrderDirection::Buy => { self.bids.cursor_front_mut() }
-                        OrderDirection::Sell => { self.asks.cursor_front_mut() }
+                        Direction::Buy => { self.bids.cursor_front_mut() }
+                        Direction::Sell => { self.asks.cursor_front_mut() }
                     };
                     while let Some(level) = side_cursor.current() {
                         if level.price == *price {

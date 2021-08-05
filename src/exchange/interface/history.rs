@@ -5,7 +5,7 @@ use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
 use crate::order::Order;
 use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
-use crate::types::{OrderDirection, OrderSize, Timestamp};
+use crate::types::{Direction, Size, Timestamp};
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
 Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
@@ -27,7 +27,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
     fn handle_prl_event(&mut self, event: HistoryEvent)
     {
-        if event.get_order_size() == OrderSize(0) {
+        if event.get_order_size() == Size(0) {
             self.remove_prl_entry(event)
         } else if self.history_order_ids.contains(&event.get_order_id()) {
             self.update_traded_prl_entry(event)
@@ -40,8 +40,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     fn remove_prl_entry(&mut self, event: HistoryEvent)
     {
         let mut cursor = match event.get_order_direction() {
-            OrderDirection::Buy => { self.bids.cursor_front_mut() }
-            OrderDirection::Sell => { self.asks.cursor_front_mut() }
+            Direction::Buy => { self.bids.cursor_front_mut() }
+            Direction::Sell => { self.asks.cursor_front_mut() }
         };
 
         let mut deleted = false;
@@ -100,8 +100,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         let price = event.price;
         let event = event.order_info;
         let side = match event.direction {
-            OrderDirection::Buy => { &mut self.bids }
-            OrderDirection::Sell => { &mut self.asks }
+            Direction::Buy => { &mut self.bids }
+            Direction::Sell => { &mut self.asks }
         };
         let ob_level = match side
             .iter_mut()
@@ -150,8 +150,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         let price = event.price;
         let mut event = event.order_info;
         let mut side_cursor = match event.direction {
-            OrderDirection::Buy => { self.asks.cursor_front_mut() }
-            OrderDirection::Sell => { self.bids.cursor_front_mut() }
+            Direction::Buy => { self.asks.cursor_front_mut() }
+            Direction::Sell => { self.bids.cursor_front_mut() }
         };
 
         let mut check_ref_order: bool = true;
@@ -190,7 +190,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                             self.trader,
                         );
                     }
-                    event.size = OrderSize(0);
+                    event.size = Size(0);
                     level_cursor.move_next();
                     exec_size
                 };
@@ -216,7 +216,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                             limit_price
                         )
                     }
-                    if event.size != OrderSize(0) {
+                    if event.size != Size(0) {
                         eprintln!(
                             "{} :: \
                             handle_trd_event :: ERROR in case of non-trading Trader :: \
@@ -228,7 +228,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     } else {
                         break;
                     }
-                } else if event.size == OrderSize(0) {
+                } else if event.size == Size(0) {
                     break;
                 }
             }
@@ -237,7 +237,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             } else {
                 side_cursor.remove_current();
             }
-            if event.size == OrderSize(0) {
+            if event.size == Size(0) {
                 return;
             }
         }

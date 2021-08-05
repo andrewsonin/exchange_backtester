@@ -1,6 +1,6 @@
 use crate::order::{LimitOrder, MarketOrder};
 use crate::trader::subscriptions::{OrderBookSnapshot, TradeInfo};
-use crate::types::{OrderID, OrderSize, Price};
+use crate::types::{OrderID, Price, Size};
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum TraderRequest {
@@ -14,8 +14,8 @@ pub enum TraderRequest {
 pub enum ExchangeReply {
     OrderAccepted(OrderID),
     OrderPlacementDiscarded(OrderID, DiscardingReason),
-    OrderPartiallyExecuted(OrderID, OrderSize, Price),
-    OrderExecuted(OrderID, OrderSize, Price),
+    OrderPartiallyExecuted(OrderID, Size, Price),
+    OrderExecuted(OrderID, Size, Price),
     OrderCancelled(OrderID, CancellationReason),
     CannotCancelOrder(OrderID, InabilityToCancelReason),
 }

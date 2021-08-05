@@ -1,4 +1,4 @@
-pub use std::num::{NonZeroUsize, NonZeroU64};
+pub use std::num::{NonZeroU64, NonZeroUsize};
 use std::str::FromStr;
 
 pub use chrono::{Duration, NaiveDateTime as Timestamp, Timelike};
@@ -13,10 +13,10 @@ pub struct Price(pub u64);
 pub struct OrderID(pub u64);
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sum, Sub, AddAssign, SubAssign)]
-pub struct OrderSize(pub u64);
+pub struct Size(pub u64);
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
-pub enum OrderDirection {
+pub enum Direction {
     Buy,
     Sell,
 }

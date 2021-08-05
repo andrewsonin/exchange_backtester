@@ -4,7 +4,7 @@ use csv::{ReaderBuilder, StringRecord};
 
 use crate::input::InputInterface;
 use crate::order::{Order, OrderInfo, PricedOrder};
-use crate::types::{OrderDirection, OrderID, OrderSize, Price, Timestamp};
+use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 use crate::utils::ExpectWith;
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -44,9 +44,9 @@ pub(crate) struct HistoryColumnIndexInfo
 
 impl const Order for HistoryEvent {
     fn get_order_id(&self) -> OrderID { self.order_info.order_id }
-    fn get_order_size(&self) -> OrderSize { self.order_info.size }
-    fn mut_order_size(&mut self) -> &mut OrderSize { &mut self.order_info.size }
-    fn get_order_direction(&self) -> OrderDirection { self.order_info.direction }
+    fn get_order_size(&self) -> Size { self.order_info.size }
+    fn mut_order_size(&mut self) -> &mut Size { &mut self.order_info.size }
+    fn get_order_direction(&self) -> Direction { self.order_info.direction }
     fn extract_body(self) -> OrderInfo { self.order_info }
 }
 
@@ -80,14 +80,14 @@ impl HistoryEventWithTime
                             || format!("Cannot parse to u64: {}", order_id)
                         )
                     ),
-                    size: OrderSize(
+                    size: Size(
                         u64::from_str(size).expect_with(
                             || format!("Cannot parse to u64: {}", size)
                         )
                     ),
                     direction: match bs_flag {
-                        "0" | "B" | "b" | "False" | "false" => { OrderDirection::Buy }
-                        "1" | "S" | "s" | "True" | "true" => { OrderDirection::Sell }
+                        "0" | "B" | "b" | "False" | "false" => { Direction::Buy }
+                        "1" | "S" | "s" | "True" | "true" => { Direction::Sell }
                         _ => { panic!("Cannot parse buy-sell flag: {}", bs_flag) }
                     },
                 },

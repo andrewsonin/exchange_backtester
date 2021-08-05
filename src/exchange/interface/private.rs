@@ -11,7 +11,7 @@ use crate::message::SubscriptionSchedule::{OrderBook, TradeInfo};
 use crate::order::{MarketOrder, Order, PricedOrder};
 use crate::trader::subscriptions::{OrderBookSnapshot, SubscriptionConfig};
 use crate::trader::Trader;
-use crate::types::{Duration, OrderDirection, OrderID, OrderSize, Price, Timestamp};
+use crate::types::{Direction, Duration, OrderID, Price, Size, Timestamp};
 
 #[derive(Eq, PartialEq)]
 pub(crate) enum AggressiveOrderType {
@@ -48,8 +48,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                                                                         mut order: MarketOrder)
     {
         let mut side_cursor = match order.get_order_direction() {
-            OrderDirection::Buy => { self.asks.cursor_front_mut() }
-            OrderDirection::Sell => { self.bids.cursor_front_mut() }
+            Direction::Buy => { self.asks.cursor_front_mut() }
+            Direction::Sell => { self.bids.cursor_front_mut() }
         };
 
         while let Some(level) = side_cursor.current()
@@ -60,7 +60,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
             while let Some(limit_order) = level_cursor.current()
             {
-                type F = fn(OrderID, OrderSize, Price) -> ExchangeReply;
+                type F = fn(OrderID, Size, Price) -> ExchangeReply;
                 let (limit_status, market_status, exec_size): (F, F, _) = match order.get_order_size().cmp(&limit_order.size) {
                     Ordering::Less => {
                         (OrderPartiallyExecuted, OrderExecuted, order.get_order_size())
@@ -133,7 +133,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             {
                 if pending_order.get_order_direction() != order.direction
                 {
-                    type F = fn(OrderID, OrderSize, Price) -> ExchangeReply;
+                    type F = fn(OrderID, Size, Price) -> ExchangeReply;
                     let (market_status, limit_status, exec_size): (F, F, _) = match order.size.cmp(&pending_order.get_order_size()) {
                         Ordering::Less => {
                             (OrderPartiallyExecuted, OrderExecuted, order.size)
@@ -169,13 +169,13 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
             // Check that the Trader submitted LimitOrder that intersects the opposite side of the Order Book
             let intersection_size = match order.direction {
-                OrderDirection::Buy => {
+                Direction::Buy => {
                     self.asks.iter()
                         .take_while(|level| level.price <= price)
                         .map(OrderBookLevel::get_ob_level_size)
                         .sum()
                 }
-                OrderDirection::Sell => {
+                Direction::Sell => {
                     self.bids.iter()
                         .take_while(|level| level.price >= price)
                         .map(OrderBookLevel::get_ob_level_size)
@@ -183,7 +183,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 }
             };
             if intersection_size < order.size {
-                if intersection_size != OrderSize(0) {
+                if intersection_size != Size(0) {
                     self.insert_intersecting_limit(
                         MarketOrder::new(order.order_id, intersection_size, order.direction)
                     )
@@ -199,7 +199,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         // Insert Order in the Order Book
         let mut insert_new_level = true;
         let mut cursor = match order.direction {
-            OrderDirection::Buy => {
+            Direction::Buy => {
                 let mut cursor = self.bids.cursor_front_mut();
                 while let Some(ob_level) = cursor.current() {
                     match ob_level.price.cmp(&price) {
@@ -213,7 +213,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 }
                 cursor
             }
-            OrderDirection::Sell => {
+            Direction::Sell => {
                 let mut cursor = self.asks.cursor_front_mut();
                 while let Some(ob_level) = cursor.current() {
                     match ob_level.price.cmp(&price) {

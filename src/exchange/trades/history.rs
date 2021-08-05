@@ -1,16 +1,16 @@
 use std::collections::VecDeque;
 
 use crate::trader::subscriptions::{PriceToVolumeSorted, TradeInfo};
-use crate::types::{OrderDirection, OrderSize, Price};
+use crate::types::{Direction, Price, Size};
 
 pub(crate) struct TradesHistory {
-    queue: VecDeque<(Price, OrderSize, OrderDirection)>,
+    queue: VecDeque<(Price, Size, Direction)>,
     min_price: Price,
     max_price: Price,
 
-    total_volume: OrderSize,
-    buy_volume: OrderSize,
-    sell_volume: OrderSize,
+    total_volume: Size,
+    buy_volume: Size,
+    sell_volume: Size,
 }
 
 impl TradesHistory {
@@ -20,21 +20,21 @@ impl TradesHistory {
             queue: Default::default(),
             min_price: Price(u64::MAX),
             max_price: Price(u64::MIN),
-            total_volume: OrderSize(0),
-            buy_volume: OrderSize(0),
-            sell_volume: OrderSize(0),
+            total_volume: Size(0),
+            buy_volume: Size(0),
+            sell_volume: Size(0),
         }
     }
 
     pub(crate)
-    fn push(&mut self, value: (Price, OrderSize, OrderDirection))
+    fn push(&mut self, value: (Price, Size, Direction))
     {
         self.queue.push_back(value);
         let (price, size, direction) = value;
         self.total_volume += size;
         match direction {
-            OrderDirection::Buy => { self.buy_volume += size }
-            OrderDirection::Sell => { self.sell_volume += size }
+            Direction::Buy => { self.buy_volume += size }
+            Direction::Sell => { self.sell_volume += size }
         }
         if price > self.max_price {
             self.max_price = price
@@ -49,9 +49,9 @@ impl TradesHistory {
         self.queue.clear();
         self.min_price = Price(u64::MAX);
         self.max_price = Price(u64::MIN);
-        self.total_volume = OrderSize(0);
-        self.buy_volume = OrderSize(0);
-        self.sell_volume = OrderSize(0);
+        self.total_volume = Size(0);
+        self.buy_volume = Size(0);
+        self.sell_volume = Size(0);
     }
 
     pub(crate)
@@ -80,8 +80,8 @@ impl TradesHistory {
         for (price, size, direction) in self.queue.iter() {
             let entry = result.entry(*price).or_default();
             match direction {
-                OrderDirection::Buy => { entry.buy_aggressors += *size }
-                OrderDirection::Sell => { entry.sell_aggressors += *size }
+                Direction::Buy => { entry.buy_aggressors += *size }
+                Direction::Sell => { entry.sell_aggressors += *size }
             }
         }
         result

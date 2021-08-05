@@ -4,7 +4,7 @@ use std::collections::{BinaryHeap, LinkedList};
 use crate::history::types::{HistoryEvent, HistoryEventWithTime, OrderOrigin};
 use crate::message::{ExchangeReply, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
 use crate::trader::Trader;
-use crate::types::{Duration, OrderID, OrderSize, Price, Timestamp};
+use crate::types::{Duration, OrderID, Price, Size, Timestamp};
 
 pub(crate) struct OrderBookLevel {
     pub(crate) price: Price,
@@ -12,14 +12,14 @@ pub(crate) struct OrderBookLevel {
 }
 
 impl OrderBookLevel {
-    pub(crate) fn get_ob_level_size(&self) -> OrderSize {
+    pub(crate) fn get_ob_level_size(&self) -> Size {
         self.queue.iter().map(|order| order.size).sum()
     }
 }
 
 pub(crate) struct OrderBookEntry {
     pub(crate) order_id: OrderID,
-    pub(crate) size: OrderSize,
+    pub(crate) size: Size,
     pub(crate) from: OrderOrigin,
 }
 

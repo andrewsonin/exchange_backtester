@@ -7,7 +7,7 @@ use crate::input::InputInterface;
 use crate::order::MarketOrder;
 use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
-use crate::types::{OrderDirection, OrderID, Price, Timestamp};
+use crate::types::{Direction, OrderID, Price, Timestamp};
 
 pub(crate) mod interface;
 pub(crate) mod types;
@@ -31,7 +31,7 @@ pub struct Exchange<
 
     trader: &'a mut T,
     trader_pending_market_orders: LinkedList<MarketOrder>,
-    trader_pending_limit_orders: HashMap<OrderID, (Price, OrderDirection)>,
+    trader_pending_limit_orders: HashMap<OrderID, (Price, Direction)>,
     trader_submitted_orders: HashSet<OrderID>,
 
     executed_trades: TradesHistory,

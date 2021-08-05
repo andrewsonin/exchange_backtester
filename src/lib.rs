@@ -27,12 +27,12 @@ pub mod prelude {
     pub use crate::trader::{examples, Trader};
     pub use crate::trader::subscriptions;
     pub use crate::types::{
+        Direction,
         Duration,
         NonZeroU64,
-        OrderDirection,
         OrderID,
-        OrderSize,
         Price,
+        Size,
         Timestamp,
     };
 }

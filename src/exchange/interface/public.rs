@@ -1,9 +1,8 @@
 use crate::exchange::Exchange;
 use crate::exchange::trades::history::TradesHistory;
-use crate::exchange::types::EventBody;
+use crate::exchange::types::EventBody::{ExchangeReply, HistoryEvent, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
 use crate::history::parser::HistoryParser;
 use crate::input::InputInterface;
-use crate::message::TraderRequest;
 use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
 use crate::types::Timestamp;
@@ -104,20 +103,11 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 eprintln!("{} :: run_trades :: EVENT :: {:?}", event.timestamp, event.body)
             }
             match event.body {
-                EventBody::HistoryEvent(event) => { self.handle_history_event(event) }
-                EventBody::TraderRequest(request) => {
-                    match request {
-                        TraderRequest::PlaceLimitOrder(order) => { self.submit_limit_order(order) }
-                        TraderRequest::PlaceMarketOrder(order) => { self.submit_market_order(order) }
-                        TraderRequest::CancelLimitOrder(order_id) => { self.cancel_limit_order(order_id) }
-                        TraderRequest::CancelMarketOrder(order_id) => { self.cancel_market_order(order_id) }
-                    }
-                }
-                EventBody::ExchangeReply(reply) => { self.trader.handle_exchange_reply(reply); }
-                EventBody::SubscriptionUpdate(update) => { self.handle_subscription_update(update) }
-                EventBody::SubscriptionSchedule(subscription_type) => {
-                    self.handle_subscription_schedule(subscription_type)
-                }
+                HistoryEvent(event) => { self.handle_history_event(event) }
+                TraderRequest(request) => { self.handle_trader_request(request) }
+                ExchangeReply(reply) => { self.handle_exchange_reply(reply) }
+                SubscriptionUpdate(update) => { self.handle_subscription_update(update) }
+                SubscriptionSchedule(subscription_type) => { self.handle_subscription_schedule(subscription_type) }
             }
         }
     }

@@ -5,9 +5,11 @@ use crate::exchange::Exchange;
 use crate::exchange::types::{Event, EventBody, OrderBookEntry, OrderBookLevel};
 use crate::history::types::OrderOrigin;
 use crate::input::InputInterface;
-use crate::message::{CancellationReason, ExchangeReply, SubscriptionSchedule, SubscriptionUpdate};
-use crate::message::ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted};
+use crate::message::{CancellationReason, ExchangeReply, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
+use crate::message::DiscardingReason::ZeroSize;
+use crate::message::ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted, OrderPlacementDiscarded};
 use crate::message::SubscriptionSchedule::{OrderBook, TradeInfo};
+use crate::message::TraderRequest::{CancelLimitOrder, CancelMarketOrder, PlaceLimitOrder, PlaceMarketOrder};
 use crate::order::{MarketOrder, Order, PricedOrder};
 use crate::trader::subscriptions::{OrderBookSnapshot, SubscriptionConfig};
 use crate::trader::Trader;
@@ -336,6 +338,46 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     }
                 }
             }
+        }
+    }
+
+    pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply) {
+        let current_time = self.current_time;
+        let trader_reactions = self.trader.handle_exchange_reply(reply);
+        let trader = &self.trader;
+        self.event_queue.extend(
+            trader_reactions.into_iter()
+                .map(
+                    |request| Event {
+                        timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                        body: EventBody::TraderRequest(request),
+                    }
+                )
+        )
+    }
+
+    pub(crate) fn handle_trader_request(&mut self, request: TraderRequest) {
+        match request {
+            PlaceLimitOrder(order) => {
+                if order.get_order_size() != Size(0) {
+                    self.submit_limit_order(order)
+                } else {
+                    self.event_queue.schedule_reply_for_trader(
+                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize), self.current_time, self.trader,
+                    )
+                }
+            }
+            PlaceMarketOrder(order) => {
+                if order.get_order_size() != Size(0) {
+                    self.submit_market_order(order)
+                } else {
+                    self.event_queue.schedule_reply_for_trader(
+                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize), self.current_time, self.trader,
+                    )
+                }
+            }
+            CancelLimitOrder(order_id) => { self.cancel_limit_order(order_id) }
+            CancelMarketOrder(order_id) => { self.cancel_market_order(order_id) }
         }
     }
 }

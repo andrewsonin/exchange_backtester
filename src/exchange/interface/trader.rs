@@ -1,4 +1,3 @@
-use std::cmp::Reverse;
 use std::collections::hash_map::Entry;
 
 use crate::exchange::Exchange;
@@ -6,44 +5,40 @@ use crate::exchange::interface::private::AggressiveOrderType;
 use crate::exchange::types::{Event, EventBody};
 use crate::history::types::OrderOrigin;
 use crate::input::InputInterface;
-use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason};
+use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason, SubscriptionUpdate};
 use crate::order::{LimitOrder, MarketOrder, Order};
+use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
 use crate::types::{Duration, OrderDirection, OrderID, Timestamp};
 
-impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEBUG>
+impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          NSC: Fn(Timestamp, Timestamp) -> bool,
           PInfo: InputInterface
 {
-    pub(crate) fn handle_wakeup(&mut self)
-    {
+    pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate) {
         let current_time = self.current_time;
-        let trader = &mut self.trader;
+
+        let trader_reactions = match update {
+            SubscriptionUpdate::OrderBook(ob_snapshot) => {
+                self.trader.handle_order_book_snapshot(current_time, ob_snapshot)
+            }
+            SubscriptionUpdate::TradeInfo(trade_info) => {
+                self.trader.handle_trade_info_update(current_time, trade_info)
+            }
+        };
+        let trader = &self.trader;
         self.event_queue.extend(
-            trader.wakeup(self.current_time)
+            trader_reactions
                 .into_iter()
                 .map(
-                    |request| Reverse(
-                        Event {
-                            timestamp: current_time + Duration::nanoseconds(trader.get_latency() as i64),
-                            body: EventBody::TraderRequest(request),
-                        }
-                    )
-                )
-        );
-        let trader_next_wakeup = current_time + Duration::nanoseconds(self.trader.get_wakeup_frequency_ns().get() as i64);
-        if (self._is_trading_time)(trader_next_wakeup) {
-            self.event_queue.push(
-                Reverse(
-                    Event {
-                        timestamp: trader_next_wakeup,
-                        body: EventBody::WakeUp,
+                    |request| Event {
+                        timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                        body: EventBody::TraderRequest(request),
                     }
                 )
-            )
-        }
+        )
     }
 
     pub(crate) fn submit_limit_order(&mut self, order: LimitOrder) {
@@ -63,7 +58,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             self.insert_limit_order::<LimitOrder, { OrderOrigin::Trader }>(order);
             ExchangeReply::OrderAccepted(order_id)
         };
-        self.schedule_reply_for_trader(reply);
+        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
     }
 
     pub(crate) fn submit_market_order(&mut self, order: MarketOrder) {
@@ -83,7 +78,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }>(order);
             ExchangeReply::OrderAccepted(order_id)
         };
-        self.schedule_reply_for_trader(reply);
+        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
     }
 
     pub(crate) fn cancel_limit_order(&mut self, order_id: OrderID) {
@@ -133,7 +128,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                 }
             }
         };
-        self.schedule_reply_for_trader(reply);
+        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
     }
 
     pub(crate) fn cancel_market_order(&mut self, order_id: OrderID) {
@@ -165,6 +160,6 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
                 }
             )()
         };
-        self.schedule_reply_for_trader(reply);
+        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
     }
 }

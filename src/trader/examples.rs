@@ -1,15 +1,22 @@
 use crate::message::{ExchangeReply, TraderRequest};
+use crate::trader::subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo};
 use crate::trader::Trader;
-use crate::types::{NonZeroU64, Timestamp};
-
-const ONE_SECOND: NonZeroU64 = NonZeroU64::new(1_000_000_000).unwrap();
+use crate::types::Timestamp;
 
 pub struct VoidTrader;
 
+impl HandleSubscriptionUpdates for VoidTrader {
+    fn handle_order_book_snapshot(&mut self, _: Timestamp, _: OrderBookSnapshot) -> Vec<TraderRequest> {
+        vec![]
+    }
+    fn handle_trade_info_update(&mut self, _: Timestamp, _: Option<TradeInfo>) -> Vec<TraderRequest> {
+        vec![]
+    }
+}
+
 impl const Trader for VoidTrader {
-    fn get_latency(&self) -> u64 { 0 }
-    fn get_wakeup_frequency_ns(&self) -> NonZeroU64 { ONE_SECOND }
-    fn handle_exchange_reply(&mut self, _: ExchangeReply) {}
+    fn exchange_to_trader_latency(&self) -> u64 { 0 }
+    fn trader_to_exchange_latency(&self) -> u64 { 0 }
+    fn handle_exchange_reply(&mut self, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
     fn set_new_trading_period(&mut self) {}
-    fn wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> { vec![] }
 }

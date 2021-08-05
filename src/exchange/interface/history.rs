@@ -3,13 +3,14 @@ use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
 use crate::input::InputInterface;
 use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
 use crate::order::Order;
+use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderSize, Timestamp};
 
-impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEBUG>
+impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          NSC: Fn(Timestamp, Timestamp) -> bool,
           PInfo: InputInterface
 {
     pub(crate)
@@ -20,7 +21,7 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             HistoryTickType::TRD => { self.handle_trd_event(event) }
         }
         if let Some(event) = self.history_reader.yield_next_event() {
-            self.schedule_history_event(event)
+            self.event_queue.schedule_history_event(event)
         }
     }
 
@@ -146,7 +147,6 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
 
     fn handle_trd_event(&mut self, event: HistoryEvent)
     {
-        let self_ptr = self as *mut Self;
         let price = event.price;
         let mut event = event.order_info;
         let mut side_cursor = match event.direction {
@@ -162,26 +162,39 @@ impl<T, TTC, NSC, PInfo, const DEBUG: bool> Exchange<'_, T, TTC, NSC, PInfo, DEB
             while let Some(limit_order) = level_cursor.current()
             {
                 let limit_order_id = limit_order.order_id;
-                if event.size >= limit_order.size {
-                    event.size -= limit_order.size;
+                let exec_size = if event.size >= limit_order.size {
+                    let exec_size = limit_order.size;
+                    event.size -= exec_size;
                     match limit_order.from {
                         OrderOrigin::History => {
                             level_cursor.move_next()
                         }
                         OrderOrigin::Trader => {
-                            unsafe { (*self_ptr).schedule_reply_for_trader(OrderExecuted(limit_order_id, limit_order.size, price)) }
+                            self.event_queue.schedule_reply_for_trader(
+                                OrderExecuted(limit_order_id, limit_order.size, price),
+                                self.current_time,
+                                self.trader,
+                            );
                             level_cursor.remove_current();
                             check_ref_order = false;
                         }
                     }
+                    exec_size
                 } else {
+                    let exec_size = event.size;
                     if limit_order.from == OrderOrigin::Trader {
-                        limit_order.size -= event.size;
-                        unsafe { (*self_ptr).schedule_reply_for_trader(OrderPartiallyExecuted(limit_order_id, event.size, price)) }
+                        limit_order.size -= exec_size;
+                        self.event_queue.schedule_reply_for_trader(
+                            OrderPartiallyExecuted(limit_order_id, event.size, price),
+                            self.current_time,
+                            self.trader,
+                        );
                     }
                     event.size = OrderSize(0);
                     level_cursor.move_next();
-                }
+                    exec_size
+                };
+                self.executed_trades.push((limit_price, exec_size, event.direction));
                 if DEBUG && check_ref_order {
                     if event.order_id != limit_order_id {
                         eprintln!(

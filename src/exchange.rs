@@ -1,19 +1,25 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
+use crate::exchange::trades::history::TradesHistory;
 use crate::exchange::types::{EventQueue, OrderBookLevel};
 use crate::history::parser::HistoryParser;
 use crate::input::InputInterface;
 use crate::order::MarketOrder;
+use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
 use crate::types::{OrderDirection, OrderID, Price, Timestamp};
 
 pub(crate) mod interface;
 pub(crate) mod types;
+pub(crate) mod trades;
 
-pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInfo, const DEBUG: bool>
+pub struct Exchange<
+    'a, T, TradingTimeCriterion, ParsingInfo,
+    const DEBUG: bool,
+    const SUBSCRIPTIONS: SubscriptionConfig
+>
     where T: Trader,
           TradingTimeCriterion: Fn(Timestamp) -> bool,
-          NewSessionCriterion: Fn(Timestamp, Timestamp) -> bool,
           ParsingInfo: InputInterface
 {
     event_queue: EventQueue,
@@ -28,7 +34,8 @@ pub struct Exchange<'a, T, TradingTimeCriterion, NewSessionCriterion, ParsingInf
     trader_pending_limit_orders: HashMap<OrderID, (Price, OrderDirection)>,
     trader_submitted_orders: HashSet<OrderID>,
 
+    executed_trades: TradesHistory,
+
     current_time: Timestamp,
-    _is_next_session: NewSessionCriterion,
-    _is_trading_time: TradingTimeCriterion,
+    is_trading_time: TradingTimeCriterion,
 }

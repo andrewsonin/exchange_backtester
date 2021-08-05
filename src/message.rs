@@ -1,4 +1,5 @@
 use crate::order::{LimitOrder, MarketOrder};
+use crate::trader::subscriptions::{OrderBookSnapshot, TradeInfo};
 use crate::types::{OrderID, OrderSize, Price};
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -37,4 +38,16 @@ pub enum InabilityToCancelReason {
     OrderHasNotBeenSubmitted,
     OrderAlreadyExecuted,
     ExchangeClosed,
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub enum SubscriptionUpdate {
+    OrderBook(OrderBookSnapshot),
+    TradeInfo(Option<TradeInfo>),
+}
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) enum SubscriptionSchedule {
+    OrderBook,
+    TradeInfo,
 }

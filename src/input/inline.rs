@@ -66,11 +66,11 @@ impl StaticInput {
         self.datetime_format = datetime_format.to_string();
         self
     }
-    pub fn with_csv_sep(mut self, csv_sep: char) -> Self {
+    pub const fn with_csv_sep(mut self, csv_sep: char) -> Self {
         self.csv_sep = csv_sep;
         self
     }
-    pub fn with_price_step(mut self, price_step: f64) -> Self {
+    pub const fn with_price_step(mut self, price_step: f64) -> Self {
         self.price_step = price_step;
         self
     }

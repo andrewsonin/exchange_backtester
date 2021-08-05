@@ -31,6 +31,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         self.bids.clear();
         self.asks.clear();
         self.trader_submitted_orders.clear();
+        self.executed_trades.clear();
 
         for id in self.trader_pending_market_orders.iter()
             .map(|order| order.get_order_id())
@@ -255,7 +256,6 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
     pub(crate) fn set_new_trading_period(&mut self)
     {
-        self.executed_trades.clear();
         if let Some((_, freq)) = SUBSCRIPTIONS.ob_depth_and_interval_ns {
             let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
             if (self.is_trading_time)(next_time) {

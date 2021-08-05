@@ -54,8 +54,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 DiscardingReason::OrderWithSuchIDAlreadySubmitted,
             )
         } else {
-            self.trader_submitted_orders.insert(order.get_order_id());
             self.insert_limit_order::<LimitOrder, { OrderOrigin::Trader }>(order);
+            self.trader_submitted_orders.insert(order_id);
             ExchangeReply::OrderAccepted(order_id)
         };
         self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
@@ -74,8 +74,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 DiscardingReason::OrderWithSuchIDAlreadySubmitted,
             )
         } else {
-            self.trader_submitted_orders.insert(order.get_order_id());
-            self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }>(order);
+            self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }, { OrderOrigin::Trader }>(order);
+            self.trader_submitted_orders.insert(order_id);
             ExchangeReply::OrderAccepted(order_id)
         };
         self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);

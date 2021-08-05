@@ -96,8 +96,8 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     self.set_new_trading_period();
                     exchange_closed = false;
                 }
-            } else {
-                if !is_trading_time { exchange_closed = true }
+            } else if !is_trading_time {
+                exchange_closed = true
             }
             if DEBUG {
                 eprintln!("{} :: run_trades :: EVENT :: {:?}", event.timestamp, event.body)

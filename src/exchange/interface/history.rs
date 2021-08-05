@@ -39,16 +39,15 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
     fn remove_prl_entry(&mut self, event: HistoryEvent)
     {
-        let mut cursor = match event.get_order_direction() {
+        let mut side_cursor = match event.get_order_direction() {
             Direction::Buy => { self.bids.cursor_front_mut() }
             Direction::Sell => { self.asks.cursor_front_mut() }
         };
 
-        let mut deleted = false;
-        while let Some(ob_level) = cursor.current()
+        while let Some(ob_level) = side_cursor.current()
         {
             if ob_level.price != event.price {
-                cursor.move_next()
+                side_cursor.move_next()
             } else {
                 let mut cursor = ob_level.queue.cursor_front_mut();
                 while let Some(limit_order) = cursor.current()
@@ -59,21 +58,22 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     }
                     cursor.move_next();
                 }
-                match cursor.remove_current() {
-                    None => {
-                        if DEBUG {
-                            eprintln!(
-                                "{} :: \
+                if let None = cursor.remove_current() {
+                    if DEBUG {
+                        eprintln!(
+                            "{} :: \
                                 remove_prl_entry :: ERROR in case of non-trading Trader :: \
-                                Order with such ID does not exists at the OB level with corresponding price: {:?}",
-                                self.current_time,
-                                event.get_order_id()
-                            )
-                        }
+                                Order with such ID does not exist at the OB level with corresponding price: {:?}",
+                            self.current_time,
+                            event.get_order_id()
+                        )
                     }
-                    _ => { deleted = true; }
+                    break;
                 }
-                if DEBUG && !self.history_order_ids.remove(&event.get_order_id()) {
+                if ob_level.queue.is_empty() {
+                    side_cursor.remove_current();
+                }
+                if !self.history_order_ids.remove(&event.get_order_id()) && DEBUG {
                     eprintln!(
                         "{} :: \
                         remove_prl_entry :: ERROR in case of non-trading Trader :: \
@@ -82,10 +82,10 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                         event.get_order_id()
                     )
                 }
-                break;
+                return;
             }
         }
-        if DEBUG && !deleted {
+        if DEBUG {
             eprintln!(
                 "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
                 :: History order has not been deleted: {:?}",
@@ -114,7 +114,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     eprintln!(
                         "{} \
                         :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
-                        :: OB level with such price does not exists: {:?}",
+                        :: OB level with such price does not exist: {:?}",
                         self.current_time,
                         event.order_id
                     );
@@ -142,7 +142,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 return;
             }
         };
-        order.size = event.size;
+        order.size = event.size
     }
 
     fn handle_trd_event(&mut self, event: HistoryEvent)

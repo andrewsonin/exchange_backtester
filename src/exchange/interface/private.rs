@@ -253,9 +253,9 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         (self.is_trading_time)(self.current_time)
     }
 
-    pub(crate) fn set_new_trading_period(&mut self, first_event_time: Timestamp)
+    pub(crate) fn set_new_trading_period(&mut self)
     {
-        self.executed_trades.clear(first_event_time);
+        self.executed_trades.clear();
         if let Some((_, freq)) = SUBSCRIPTIONS.ob_depth_and_interval_ns {
             let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
             if (self.is_trading_time)(next_time) {
@@ -324,7 +324,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                             )),
                         }
                     );
-                    self.executed_trades.clear(self.current_time);
+                    self.executed_trades.clear();
                     let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(

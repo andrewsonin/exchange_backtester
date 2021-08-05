@@ -69,12 +69,11 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             trader_pending_market_orders: Default::default(),
             trader_pending_limit_orders: Default::default(),
             trader_submitted_orders: Default::default(),
-            executed_trades: TradesHistory::new(first_event.timestamp),
+            executed_trades: TradesHistory::new(),
             current_time: first_event.timestamp,
-            is_trading_time: is_trading_time,
+            is_trading_time,
         };
         exchange.event_queue.schedule_history_event(first_event);
-        // exchange.set_new_trading_period(first_event.timestamp);
         if DEBUG {
             eprintln!("{} :: build :: BEGIN", first_event.timestamp)
         }
@@ -95,7 +94,7 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                         eprintln!("{} :: run_trades :: CLEANUP", event.timestamp)
                     }
                     self.cleanup();
-                    self.set_new_trading_period(event.timestamp);
+                    self.set_new_trading_period();
                     exchange_closed = false;
                 }
             } else {

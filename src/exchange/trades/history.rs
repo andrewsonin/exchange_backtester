@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 
 use crate::trader::subscriptions::{PriceToVolumeSorted, TradeInfo};
-use crate::types::{OrderDirection, OrderSize, Price, Timestamp};
+use crate::types::{OrderDirection, OrderSize, Price};
 
 pub(crate) struct TradesHistory {
     queue: VecDeque<(Price, OrderSize, OrderDirection)>,
@@ -11,13 +11,10 @@ pub(crate) struct TradesHistory {
     total_volume: OrderSize,
     buy_volume: OrderSize,
     sell_volume: OrderSize,
-
-    begin_time: Timestamp,
 }
 
 impl TradesHistory {
-    pub(crate)
-    fn new(begin_time: Timestamp) -> TradesHistory
+    pub(crate) fn new() -> TradesHistory
     {
         TradesHistory {
             queue: Default::default(),
@@ -26,7 +23,6 @@ impl TradesHistory {
             total_volume: OrderSize(0),
             buy_volume: OrderSize(0),
             sell_volume: OrderSize(0),
-            begin_time,
         }
     }
 
@@ -49,8 +45,7 @@ impl TradesHistory {
     }
 
     pub(crate)
-    fn clear(&mut self, new_begin_time: Timestamp) {
-        self.begin_time = new_begin_time;
+    fn clear(&mut self) {
         self.queue.clear();
         self.min_price = Price(u64::MAX);
         self.max_price = Price(u64::MIN);

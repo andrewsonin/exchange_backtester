@@ -8,13 +8,13 @@ use crate::trader::subscriptions::SubscriptionConfig;
 use crate::trader::Trader;
 use crate::types::Timestamp;
 
-pub struct ExchangeBuilder<'a, T, TTC, PInfo> {
-    _dummy_a: &'a T,
+pub struct ExchangeBuilder<T, TTC, PInfo> {
+    _dummy_a: T,
     _dummy_b: TTC,
     _dummy_c: PInfo,
 }
 
-impl<'a, T, TTC, PInfo> ExchangeBuilder<'_, T, TTC, PInfo>
+impl<'a, T, TTC, PInfo> ExchangeBuilder<T, TTC, PInfo>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           PInfo: InputInterface

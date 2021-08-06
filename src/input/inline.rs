@@ -1,5 +1,4 @@
-use crate::input::default::*;
-use crate::input::InputInterface;
+use crate::input::{default::*, InputInterface};
 
 pub struct StaticInput {
     prl_files: String,

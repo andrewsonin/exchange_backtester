@@ -1,18 +1,22 @@
 use std::cmp::Ordering;
 use std::collections::LinkedList;
 
-use crate::exchange::Exchange;
-use crate::exchange::types::{Event, EventBody, OrderBookEntry, OrderBookLevel};
+use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
 use crate::history::types::OrderOrigin;
 use crate::input::InputInterface;
-use crate::message::{CancellationReason, ExchangeReply, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
-use crate::message::DiscardingReason::ZeroSize;
-use crate::message::ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted, OrderPlacementDiscarded};
-use crate::message::SubscriptionSchedule::{OrderBook, TradeInfo};
-use crate::message::TraderRequest::{CancelLimitOrder, CancelMarketOrder, PlaceLimitOrder, PlaceMarketOrder};
+use crate::message::{
+    CancellationReason,
+    DiscardingReason::ZeroSize,
+    ExchangeReply::{OrderCancelled, OrderExecuted, OrderPartiallyExecuted, OrderPlacementDiscarded},
+    ExchangeReply,
+    SubscriptionSchedule::{OrderBook, TradeInfo},
+    SubscriptionSchedule,
+    SubscriptionUpdate,
+    TraderRequest::{CancelLimitOrder, CancelMarketOrder, PlaceLimitOrder, PlaceMarketOrder},
+    TraderRequest,
+};
 use crate::order::{MarketOrder, Order, PricedOrder};
-use crate::trader::subscriptions::{OrderBookSnapshot, SubscriptionConfig};
-use crate::trader::Trader;
+use crate::trader::{subscriptions::{OrderBookSnapshot, SubscriptionConfig}, Trader};
 use crate::types::{Direction, Duration, OrderID, Price, Size, Timestamp};
 
 #[derive(Eq, PartialEq)]

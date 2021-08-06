@@ -1,6 +1,5 @@
 use crate::message::{ExchangeReply, TraderRequest};
-use crate::trader::subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo};
-use crate::trader::Trader;
+use crate::trader::{subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo}, Trader};
 use crate::types::Timestamp;
 
 pub struct VoidTrader;

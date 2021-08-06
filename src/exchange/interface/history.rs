@@ -3,8 +3,7 @@ use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
 use crate::input::InputInterface;
 use crate::message::ExchangeReply::{OrderExecuted, OrderPartiallyExecuted};
 use crate::order::Order;
-use crate::trader::subscriptions::SubscriptionConfig;
-use crate::trader::Trader;
+use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, Size, Timestamp};
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>

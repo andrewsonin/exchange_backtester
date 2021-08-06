@@ -1,10 +1,11 @@
-use crate::exchange::Exchange;
-use crate::exchange::trades::history::TradesHistory;
-use crate::exchange::types::EventBody::{ExchangeReply, HistoryEvent, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
+use crate::exchange::{
+    Exchange,
+    trades::history::TradesHistory,
+    types::EventBody::{ExchangeReply, HistoryEvent, SubscriptionSchedule, SubscriptionUpdate, TraderRequest},
+};
 use crate::history::parser::HistoryParser;
 use crate::input::InputInterface;
-use crate::trader::subscriptions::SubscriptionConfig;
-use crate::trader::Trader;
+use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::Timestamp;
 
 pub struct ExchangeBuilder<T, TTC, PInfo> {

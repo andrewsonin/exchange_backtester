@@ -1,12 +1,10 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
-use crate::exchange::trades::history::TradesHistory;
-use crate::exchange::types::{EventQueue, OrderBookLevel};
+use crate::exchange::{trades::history::TradesHistory, types::{EventQueue, OrderBookLevel}};
 use crate::history::parser::HistoryParser;
 use crate::input::InputInterface;
 use crate::order::MarketOrder;
-use crate::trader::subscriptions::SubscriptionConfig;
-use crate::trader::Trader;
+use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, OrderID, Price, Timestamp};
 
 pub(crate) mod interface;

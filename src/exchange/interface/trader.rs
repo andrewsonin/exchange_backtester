@@ -1,14 +1,11 @@
 use std::collections::hash_map::Entry;
 
-use crate::exchange::Exchange;
-use crate::exchange::interface::private::AggressiveOrderType;
-use crate::exchange::types::{Event, EventBody};
+use crate::exchange::{Exchange, interface::private::AggressiveOrderType, types::{Event, EventBody}};
 use crate::history::types::OrderOrigin;
 use crate::input::InputInterface;
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason, SubscriptionUpdate};
 use crate::order::{LimitOrder, MarketOrder, Order};
-use crate::trader::subscriptions::SubscriptionConfig;
-use crate::trader::Trader;
+use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, Duration, OrderID, Timestamp};
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>

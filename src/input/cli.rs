@@ -1,7 +1,6 @@
 pub use clap::{AppSettings, Clap};
 
-use crate::input::default::*;
-use crate::input::InputInterface;
+use crate::input::{default::*, InputInterface};
 
 /// Exchange backtesting framework
 #[derive(Clap)]

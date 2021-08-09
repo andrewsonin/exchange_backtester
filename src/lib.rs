@@ -13,8 +13,7 @@ pub mod constants;
 
 pub mod prelude {
     pub use crate::constants;
-    pub use crate::exchange::Exchange;
-    pub use crate::exchange::interface::public::ExchangeBuilder;
+    pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
     pub use crate::input;
     pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput};
     pub use crate::message::{
@@ -24,30 +23,29 @@ pub mod prelude {
         InabilityToCancelReason,
         TraderRequest,
     };
-    pub use crate::trader::{examples, Trader};
-    pub use crate::trader::subscriptions;
+    pub use crate::trader::{examples, subscriptions::SubscriptionConfig, Trader};
     pub use crate::types::{
         Direction,
         Duration,
         NonZeroU64,
+        NonZeroUsize,
         OrderID,
         Price,
         Size,
         Timestamp,
     };
+    pub use crate::utils::ExpectWith;
 }
 
 #[cfg(test)]
 mod integration {
     use std::fs::File;
     use std::io::Write;
-    use std::num::NonZeroUsize;
     use std::path::Path;
 
-    use subscriptions::SubscriptionConfig;
-
+    use crate::input::default::DATETIME_FORMAT;
     use crate::prelude::*;
-    use crate::utils::{ExpectWith, SOURCE_DIR};
+    use crate::utils::SOURCE_DIR;
 
     fn prepare_testing(test_name: &str) -> StaticInput {
         let test_dir = Path::new(SOURCE_DIR)
@@ -81,14 +79,15 @@ mod integration {
         let input = prepare_testing("test_01");
         let mut trader = examples::VoidTrader;
 
-        let end_of_trades = Timestamp::parse_from_str("2019-03-04 12:11:12", "%Y-%m-%d %H:%M:%S")
+        let end_of_trades = Timestamp::parse_from_str("2019-03-04 12:11:12", DATETIME_FORMAT)
             .unwrap();
         let is_trading_time = |timestamp: Timestamp| {
             timestamp < end_of_trades
         };
         const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
             .ob_level_subscription_depth(constants::ONE_SECOND, NonZeroUsize::new(10).unwrap())
-            .trade_info_subscription(constants::ONE_SECOND);
+            .trade_info_subscription(constants::ONE_SECOND)
+            .with_periodic_wakeup(constants::ONE_MINUTE);
 
         let mut exchange = ExchangeBuilder::new_debug::<SUBSCRIPTIONS>(
             &input,

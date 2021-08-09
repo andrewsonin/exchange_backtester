@@ -8,7 +8,6 @@ pub(crate) struct TradesHistory {
     min_price: Price,
     max_price: Price,
 
-    total_volume: Size,
     buy_volume: Size,
     sell_volume: Size,
 }
@@ -20,7 +19,6 @@ impl TradesHistory {
             queue: Default::default(),
             min_price: Price(u64::MAX),
             max_price: Price(u64::MIN),
-            total_volume: Size(0),
             buy_volume: Size(0),
             sell_volume: Size(0),
         }
@@ -31,7 +29,6 @@ impl TradesHistory {
     {
         self.queue.push_back(value);
         let (price, size, direction) = value;
-        self.total_volume += size;
         match direction {
             Direction::Buy => { self.buy_volume += size }
             Direction::Sell => { self.sell_volume += size }
@@ -49,7 +46,6 @@ impl TradesHistory {
         self.queue.clear();
         self.min_price = Price(u64::MAX);
         self.max_price = Price(u64::MIN);
-        self.total_volume = Size(0);
         self.buy_volume = Size(0);
         self.sell_volume = Size(0);
     }
@@ -67,7 +63,6 @@ impl TradesHistory {
                 high: self.max_price,
                 low: self.min_price,
                 close,
-                volume: self.total_volume,
                 buy_volume: self.buy_volume,
                 sell_volume: self.sell_volume,
                 price_to_volume_sorted: self.get_trade_volumes(),

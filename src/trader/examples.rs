@@ -11,6 +11,9 @@ impl HandleSubscriptionUpdates for VoidTrader {
     fn handle_trade_info_update(&mut self, _: Timestamp, _: Option<TradeInfo>) -> Vec<TraderRequest> {
         vec![]
     }
+    fn handle_wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> {
+        vec![]
+    }
 }
 
 impl const Trader for VoidTrader {

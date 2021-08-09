@@ -7,6 +7,7 @@ use crate::types::{NonZeroU64, NonZeroUsize, Price, Size, Timestamp};
 pub struct SubscriptionConfig {
     pub(crate) ob_depth_and_interval_ns: Option<(usize, NonZeroU64)>,
     pub(crate) trade_info_interval_ns: Option<NonZeroU64>,
+    pub(crate) wakeup: Option<NonZeroU64>,
 }
 
 pub trait HandleSubscriptionUpdates {
@@ -16,6 +17,7 @@ pub trait HandleSubscriptionUpdates {
     fn handle_trade_info_update(&mut self,
                                 timestamp: Timestamp,
                                 trade_info: Option<TradeInfo>) -> Vec<TraderRequest>;
+    fn handle_wakeup(&mut self, timestamp: Timestamp) -> Vec<TraderRequest>;
 }
 
 impl SubscriptionConfig {
@@ -23,6 +25,7 @@ impl SubscriptionConfig {
         SubscriptionConfig {
             ob_depth_and_interval_ns: None,
             trade_info_interval_ns: None,
+            wakeup: None,
         }
     }
     pub const fn ob_level_subscription_depth(mut self, interval_ns: NonZeroU64, depth: NonZeroUsize) -> Self {
@@ -35,6 +38,10 @@ impl SubscriptionConfig {
     }
     pub const fn trade_info_subscription(mut self, interval_ns: NonZeroU64) -> Self {
         self.trade_info_interval_ns = Some(interval_ns);
+        self
+    }
+    pub const fn with_periodic_wakeup(mut self, interval_ns: NonZeroU64) -> Self {
+        self.wakeup = Some(interval_ns);
         self
     }
 }
@@ -52,7 +59,6 @@ pub struct TradeInfo {
     pub low: Price,
     pub close: Price,
 
-    pub volume: Size,
     pub buy_volume: Size,
     pub sell_volume: Size,
 

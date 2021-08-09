@@ -39,6 +39,7 @@ pub(crate) enum EventBody {
     ExchangeReply(ExchangeReply),
     SubscriptionUpdate(SubscriptionUpdate),
     SubscriptionSchedule(SubscriptionSchedule),
+    TraderWakeUp,
 }
 
 impl Extend<Event> for EventQueue {

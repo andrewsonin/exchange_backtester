@@ -1,5 +1,6 @@
-use std::cmp::Ordering;
-use std::collections::LinkedList;
+use std::{cmp::Ordering, collections::LinkedList, iter::FromIterator};
+
+use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
 use crate::history::types::OrderOrigin;
@@ -17,12 +18,15 @@ use crate::message::{
 };
 use crate::order::{MarketOrder, Order, PricedOrder};
 use crate::trader::{subscriptions::{OrderBookSnapshot, SubscriptionConfig}, Trader};
-use crate::types::{Direction, Duration, OrderID, Price, Size, Timestamp};
+use crate::types::{Direction, Duration, Size, Timestamp};
+use crate::utils::ExpectWith;
 
 #[derive(Eq, PartialEq)]
 pub(crate) enum AggressiveOrderType {
-    IntersectingLimitOrder,
-    MarketOrder,
+    TraderMarketOrder,
+    HistoryMarketOrder,
+    TraderIntersectingLimitOrder,
+    HistoryIntersectingLimitOrder,
 }
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
@@ -51,10 +55,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     }
 
     pub(crate)
-    fn insert_aggressive_order<const ORDER_TYPE: AggressiveOrderType, const COME_FROM: OrderOrigin>(
-        &mut self,
-        mut order: MarketOrder,
-    )
+    fn insert_aggressive_order<const ORDER_TYPE: AggressiveOrderType>(&mut self, mut order: MarketOrder)
     {
         let mut side_cursor = match order.get_order_direction() {
             Direction::Buy => { self.asks.cursor_front_mut() }
@@ -63,72 +64,120 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
         while let Some(level) = side_cursor.current()
         {
-            let limit_price = level.price;
-            let mut level_size = level.queue.len();
+            let price = level.price;
             let mut level_cursor = level.queue.cursor_front_mut();
+            let mut limit_order = level_cursor.current().expect_with(
+                || format!("Level at price {:?} does not have any orders", price)
+            );
 
-            while let Some(limit_order) = level_cursor.current()
-            {
-                type F = fn(OrderID, Size, Price) -> ExchangeReply;
-                let (limit_status, market_status, exec_size): (F, F, _) = match order.get_order_size().cmp(&limit_order.size) {
+            loop {
+                match order.get_order_size().cmp(&limit_order.size)
+                {
                     Ordering::Less => {
-                        (OrderPartiallyExecuted, OrderExecuted, order.get_order_size())
+                        // (OrderExecuted, OrderPartiallyExecuted)
+                        let exec_size = order.get_order_size();
+                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        match ORDER_TYPE {
+                            TraderMarketOrder => {
+                                let reply = OrderExecuted(order.get_order_id(), exec_size, price);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader)
+                            }
+                            TraderIntersectingLimitOrder => {
+                                let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader)
+                            }
+                            _ => {}
+                        }
+                        if limit_order.from == OrderOrigin::Trader {
+                            let reply = OrderPartiallyExecuted(limit_order.order_id, exec_size, price);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            limit_order.size -= exec_size
+                        }
+                        return;
                     }
                     Ordering::Equal => {
-                        (OrderExecuted, OrderExecuted, limit_order.size)
+                        // (OrderExecuted, OrderExecuted)
+                        let exec_size = order.get_order_size();
+                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        match ORDER_TYPE {
+                            TraderMarketOrder => {
+                                let reply = OrderExecuted(order.get_order_id(), exec_size, price);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            }
+                            TraderIntersectingLimitOrder => {
+                                let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            }
+                            _ => {}
+                        }
+                        if limit_order.from == OrderOrigin::Trader {
+                            let reply = OrderExecuted(limit_order.order_id, exec_size, price);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            self.trader_pending_limit_orders.remove(&limit_order.order_id);
+                            level_cursor.remove_current();
+                            if level.queue.is_empty() {
+                                side_cursor.remove_current();
+                            }
+                        }
+                        return;
                     }
                     Ordering::Greater => {
-                        (OrderExecuted, OrderPartiallyExecuted, limit_order.size)
+                        // (OrderPartiallyExecuted, OrderExecuted)
+                        let exec_size = limit_order.size;
+                        *order.mut_order_size() -= exec_size;
+                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                            let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                        }
+                        match limit_order.from {
+                            OrderOrigin::History => {
+                                level_cursor.move_next();
+                                match level_cursor.current() {
+                                    Some(entry) => { limit_order = entry }
+                                    None => {
+                                        side_cursor.move_next();
+                                        break;
+                                    }
+                                }
+                            }
+                            OrderOrigin::Trader => {
+                                let reply = OrderExecuted(limit_order.order_id, exec_size, price);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                                self.trader_pending_limit_orders.remove(&limit_order.order_id);
+                                level_cursor.remove_current();
+                                match level_cursor.current() {
+                                    Some(entry) => { limit_order = entry }
+                                    None => {
+                                        if level.queue.is_empty() {
+                                            side_cursor.remove_current();
+                                        } else {
+                                            side_cursor.move_next();
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
                     }
-                };
-                *order.mut_order_size() -= exec_size;
-                limit_order.size -= exec_size;
-
-                if limit_order.from == OrderOrigin::Trader {
-                    let reply = limit_status(limit_order.order_id, exec_size, limit_price);
-                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
-                    if limit_status == OrderExecuted {
-                        self.trader_pending_limit_orders.remove(&limit_order.order_id);
-                    }
-                }
-                if COME_FROM == OrderOrigin::Trader {
-                    let reply_status = match ORDER_TYPE {
-                        AggressiveOrderType::IntersectingLimitOrder => { OrderPartiallyExecuted }
-                        AggressiveOrderType::MarketOrder => { market_status }
-                    };
-                    let reply = reply_status(order.get_order_id(), exec_size, limit_price);
-                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader)
-                }
-
-                self.executed_trades.push((limit_price, exec_size, order.get_order_direction()));
-
-                if limit_status == OrderPartiallyExecuted {
-                    return;
-                } else {
-                    level_cursor.remove_current();
-                    level_size -= 1;
-                    if level_size == 0 {
-                        side_cursor.remove_current();
-                        if market_status == OrderExecuted { return; }
-                        break;
-                    }
-                    if market_status == OrderExecuted { return; }
                 }
             }
         }
         match ORDER_TYPE {
-            AggressiveOrderType::IntersectingLimitOrder => {
-                eprintln!(
-                    "{} :: submit_aggressive_order :: ERROR :: \
-                    Intersecting market order {:?} has not been fully executed",
-                    self.current_time,
-                    order.get_order_id()
-                )
-            }
-            AggressiveOrderType::MarketOrder => {
-                if COME_FROM == OrderOrigin::Trader {
-                    self.trader_pending_market_orders.push_back(order)
+            TraderMarketOrder => { self.trader_pending_market_orders.push_back(order) }
+            HistoryMarketOrder => {
+                if DEBUG {
+                    eprintln!(
+                        "{} :: insert_aggressive_order<HistoryMarketOrder> :: ERROR in case of non-trading Trader :: \
+                        market order with {:?} did not fully executed. Its remaining size: {:?}",
+                        self.current_time,
+                        order.get_order_id(),
+                        order.get_order_size()
+                    )
                 }
+            }
+            TraderIntersectingLimitOrder | HistoryIntersectingLimitOrder => {
+                panic!("{}. Intersection LimitOrder has not been fully executed", self.current_time)
             }
         }
     }
@@ -141,43 +190,52 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
         // Check that the Exchange have pending market orders
         let mut cursor = self.trader_pending_market_orders.cursor_front_mut();
-        while let Some(pending_order) = cursor.current()
+        while let Some(pending) = cursor.current()
         {
-            if pending_order.get_order_direction() != order.direction
-            {
-                type F = fn(OrderID, Size, Price) -> ExchangeReply;
-                let (limit_status, market_status, exec_size): (F, F, _) = match order.size.cmp(&pending_order.get_order_size()) {
-                    Ordering::Less => {
-                        (OrderExecuted, OrderPartiallyExecuted, order.size)
+            if pending.get_order_direction() == order.direction {
+                cursor.move_next();
+                continue;
+            }
+            match order.size.cmp(&pending.get_order_size()) {
+                Ordering::Less => {
+                    // (OrderExecuted, OrderPartiallyExecuted)
+                    let exec_size = order.size;
+                    *pending.mut_order_size() -= exec_size;
+                    let reply = OrderPartiallyExecuted(pending.get_order_id(), exec_size, price);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    if COME_FROM == OrderOrigin::Trader {
+                        let reply = OrderExecuted(order.order_id, exec_size, price);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                     }
-                    Ordering::Equal => {
-                        (OrderExecuted, OrderExecuted, order.size)
-                    }
-                    Ordering::Greater => {
-                        (OrderPartiallyExecuted, OrderExecuted, pending_order.get_order_size())
-                    }
-                };
-                let mkt_reply = market_status(pending_order.get_order_id(), exec_size, price);
-                self.event_queue.schedule_reply_for_trader(mkt_reply, self.current_time, self.trader);
-
-                if COME_FROM == OrderOrigin::Trader {
-                    let lim_reply = limit_status(order.order_id, exec_size, price);
-                    self.event_queue.schedule_reply_for_trader(lim_reply, self.current_time, self.trader);
-                }
-
-                self.executed_trades.push((price, exec_size, pending_order.get_order_direction()));
-                if market_status == OrderPartiallyExecuted {
-                    *pending_order.mut_order_size() -= exec_size;
-                } else {
-                    cursor.remove_current();
-                }
-                if limit_status == OrderPartiallyExecuted {
-                    order.size -= exec_size;
-                } else {
+                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
                     return;
                 }
-            } else {
-                cursor.move_next();
+                Ordering::Equal => {
+                    // (OrderExecuted, OrderExecuted)
+                    let exec_size = order.size;
+                    let reply = OrderExecuted(pending.get_order_id(), exec_size, price);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    if COME_FROM == OrderOrigin::Trader {
+                        let reply = OrderExecuted(order.order_id, exec_size, price);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    }
+                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
+                    cursor.remove_current();
+                    return;
+                }
+                Ordering::Greater => {
+                    // (OrderPartiallyExecuted, OrderExecuted)
+                    let exec_size = pending.get_order_size();
+                    order.size -= exec_size;
+                    let reply = OrderExecuted(pending.get_order_id(), exec_size, price);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    if COME_FROM == OrderOrigin::Trader {
+                        let reply = OrderPartiallyExecuted(order.order_id, exec_size, price);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    }
+                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
+                    cursor.remove_current();
+                }
             }
         }
 
@@ -198,14 +256,18 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         };
         if intersection_size < order.size {
             if intersection_size != Size(0) {
-                self.insert_intersecting_limit::<COME_FROM>(
-                    MarketOrder::new(order.order_id, intersection_size, order.direction)
-                )
+                let order = MarketOrder::new(order.order_id, intersection_size, order.direction);
+                match COME_FROM {
+                    OrderOrigin::History => { self.insert_aggressive_order::<{ HistoryIntersectingLimitOrder }>(order) }
+                    OrderOrigin::Trader => { self.insert_aggressive_order::<{ TraderIntersectingLimitOrder }>(order) }
+                }
             }
         } else {
-            self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }, COME_FROM>(
-                MarketOrder::new(order.order_id, order.size, order.direction)
-            );
+            let order = MarketOrder::new(order.order_id, order.size, order.direction);
+            match COME_FROM {
+                OrderOrigin::History => { self.insert_aggressive_order::<{ AggressiveOrderType::HistoryMarketOrder }>(order) }
+                OrderOrigin::Trader => { self.insert_aggressive_order::<{ AggressiveOrderType::TraderMarketOrder }>(order) }
+            }
             return;
         }
 
@@ -242,24 +304,20 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             }
         };
         if insert_new_level {
-            cursor.insert_before(OrderBookLevel { price, queue: Default::default() });
-            cursor.move_prev();
+            let iter = [OrderBookEntry { order_id: order.order_id, size: order.size, from: COME_FROM }];
+            cursor.insert_before(OrderBookLevel { price, queue: FromIterator::from_iter(iter) })
+        } else {
+            cursor.current().unwrap().queue.push_back(
+                OrderBookEntry {
+                    order_id: order.order_id,
+                    size: order.size,
+                    from: COME_FROM,
+                }
+            )
         }
-        let ob_level = cursor.current().unwrap();
-        ob_level.queue.push_back(
-            OrderBookEntry {
-                order_id: order.order_id,
-                size: order.size,
-                from: COME_FROM,
-            }
-        );
         if COME_FROM == OrderOrigin::Trader {
             self.trader_pending_limit_orders.insert(order.order_id, (price, order.direction));
         }
-    }
-
-    fn insert_intersecting_limit<const COME_FROM: OrderOrigin>(&mut self, order: MarketOrder) {
-        self.insert_aggressive_order::<{ AggressiveOrderType::IntersectingLimitOrder }, COME_FROM>(order)
     }
 
     pub(crate) fn is_now_trading_time(&self) -> bool {
@@ -286,6 +344,17 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                     Event {
                         timestamp: next_time,
                         body: EventBody::SubscriptionSchedule(TradeInfo),
+                    }
+                )
+            }
+        }
+        if let Some(freq) = SUBSCRIPTIONS.wakeup {
+            let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+            if (self.is_trading_time)(next_time) {
+                self.event_queue.push(
+                    Event {
+                        timestamp: next_time,
+                        body: EventBody::TraderWakeUp,
                     }
                 )
             }
@@ -324,6 +393,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                             }
                         )
                     }
+                } else {
+                    unreachable!()
                 }
             }
             SubscriptionSchedule::TradeInfo => {
@@ -346,6 +417,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                             }
                         )
                     }
+                } else {
+                    unreachable!()
                 }
             }
         }
@@ -388,6 +461,62 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             }
             CancelLimitOrder(order_id) => { self.cancel_limit_order(order_id) }
             CancelMarketOrder(order_id) => { self.cancel_market_order(order_id) }
+        }
+    }
+
+    pub(crate) fn handle_trader_wakeup(&mut self) {
+        if let Some(freq) = SUBSCRIPTIONS.wakeup {
+            let current_time = self.current_time;
+            let trader_reactions = self.trader.handle_wakeup(current_time);
+            let trader = &self.trader;
+            self.event_queue.extend(
+                trader_reactions.into_iter()
+                    .map(
+                        |request| Event {
+                            timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                            body: EventBody::TraderRequest(request),
+                        }
+                    )
+            );
+            let next_wakeup_time = current_time + Duration::nanoseconds(freq.get() as i64);
+            if (self.is_trading_time)(next_wakeup_time) {
+                self.event_queue.push(
+                    Event {
+                        timestamp: next_wakeup_time,
+                        body: EventBody::TraderWakeUp,
+                    }
+                )
+            }
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub(crate)
+    fn process_next_event(&mut self, event: Event) {
+        self.current_time = event.timestamp;
+        if self.exchange_closed {
+            if self.is_now_trading_time() {
+                if DEBUG {
+                    eprintln!("{} :: process_next_event :: CLEANUP", event.timestamp)
+                }
+                self.cleanup();
+                self.set_new_trading_period();
+                self.exchange_closed = false;
+            }
+        } else if !self.is_now_trading_time() {
+            self.exchange_closed = true
+        }
+        if DEBUG {
+            eprintln!("{} :: process_next_event :: EVENT :: {:?}", event.timestamp, event.body)
+        }
+        match event.body {
+            EventBody::HistoryEvent(event) => { self.handle_history_event(event) }
+            EventBody::TraderRequest(request) => { self.handle_trader_request(request) }
+            EventBody::ExchangeReply(reply) => { self.handle_exchange_reply(reply) }
+            EventBody::SubscriptionUpdate(update) => { self.handle_subscription_update(update) }
+            EventBody::SubscriptionSchedule(subscription_type) => { self.handle_subscription_schedule(subscription_type) }
+            EventBody::TraderWakeUp => { self.handle_trader_wakeup() }
         }
     }
 }

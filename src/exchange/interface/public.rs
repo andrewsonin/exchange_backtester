@@ -1,7 +1,6 @@
 use crate::exchange::{
     Exchange,
     trades::history::TradesHistory,
-    types::EventBody::{ExchangeReply, HistoryEvent, SubscriptionSchedule, SubscriptionUpdate, TraderRequest},
 };
 use crate::history::parser::HistoryParser;
 use crate::input::InputInterface;
@@ -71,6 +70,7 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             trader_submitted_orders: Default::default(),
             executed_trades: TradesHistory::new(),
             current_time: first_event.timestamp,
+            exchange_closed: true,
             is_trading_time,
         };
         exchange.event_queue.schedule_history_event(first_event);
@@ -81,35 +81,9 @@ Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     }
 
     pub
-    fn run_trades(&mut self)
-    {
-        let mut exchange_closed = true;
-        while let Some(event) = self.event_queue.pop()
-        {
-            let is_trading_time = (self.is_trading_time)(event.timestamp);
-            self.current_time = event.timestamp;
-            if exchange_closed {
-                if is_trading_time {
-                    if DEBUG {
-                        eprintln!("{} :: run_trades :: CLEANUP", event.timestamp)
-                    }
-                    self.cleanup();
-                    self.set_new_trading_period();
-                    exchange_closed = false;
-                }
-            } else if !is_trading_time {
-                exchange_closed = true
-            }
-            if DEBUG {
-                eprintln!("{} :: run_trades :: EVENT :: {:?}", event.timestamp, event.body)
-            }
-            match event.body {
-                HistoryEvent(event) => { self.handle_history_event(event) }
-                TraderRequest(request) => { self.handle_trader_request(request) }
-                ExchangeReply(reply) => { self.handle_exchange_reply(reply) }
-                SubscriptionUpdate(update) => { self.handle_subscription_update(update) }
-                SubscriptionSchedule(subscription_type) => { self.handle_subscription_schedule(subscription_type) }
-            }
+    fn run_trades(&mut self) {
+        while let Some(event) = self.event_queue.pop() {
+            self.process_next_event(event)
         }
     }
 }

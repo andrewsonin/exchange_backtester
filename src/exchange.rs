@@ -35,5 +35,6 @@ pub struct Exchange<
     executed_trades: TradesHistory,
 
     current_time: Timestamp,
+    exchange_closed: bool,
     is_trading_time: TradingTimeCriterion,
 }

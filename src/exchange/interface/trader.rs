@@ -71,7 +71,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 DiscardingReason::OrderWithSuchIDAlreadySubmitted,
             )
         } else {
-            self.insert_aggressive_order::<{ AggressiveOrderType::MarketOrder }, { OrderOrigin::Trader }>(order);
+            self.insert_aggressive_order::<{ AggressiveOrderType::TraderMarketOrder }>(order);
             self.trader_submitted_orders.insert(order_id);
             ExchangeReply::OrderAccepted(order_id)
         };

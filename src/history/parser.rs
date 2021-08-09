@@ -1,20 +1,21 @@
 use std::cmp::min;
 
+pub use interface::HistoryEventProcessor;
+
 use crate::history::{
-    reader::HistoryReader,
-    types::{HistoryEventWithTime, HistoryTickType},
+    reader::{PRLReader, TRDReader},
+    types::HistoryEventWithTime,
 };
 use crate::input::InputInterface;
 use crate::types::Timestamp;
 
-const PRL: HistoryTickType = HistoryTickType::PRL;
-const TRD: HistoryTickType = HistoryTickType::TRD;
+pub mod interface;
 
-pub(crate) struct HistoryParser<'a, ParsingInfo>
+pub struct HistoryParser<'a, ParsingInfo>
     where ParsingInfo: InputInterface
 {
-    prl_parser: HistoryReader<'a, PRL, ParsingInfo>,
-    trd_parser: HistoryReader<'a, TRD, ParsingInfo>,
+    prl_parser: PRLReader<'a, ParsingInfo>,
+    trd_parser: TRDReader<'a, ParsingInfo>,
 
     last_prl: Option<HistoryEventWithTime>,
     last_trd: Option<HistoryEventWithTime>,
@@ -22,13 +23,12 @@ pub(crate) struct HistoryParser<'a, ParsingInfo>
     last_time: Timestamp,
 }
 
-impl<ParsingInfo> HistoryParser<'_, ParsingInfo>
-    where ParsingInfo: InputInterface
+impl<ParsingInfo: InputInterface> HistoryParser<'_, ParsingInfo>
 {
     pub fn new(args: &ParsingInfo) -> HistoryParser<ParsingInfo>
     {
-        let mut prl_parser = HistoryReader::new(args.get_prl_files(), args);
-        let mut trd_parser = HistoryReader::new(args.get_trd_files(), args);
+        let mut prl_parser = PRLReader::new(args.get_prl_files(), args);
+        let mut trd_parser = TRDReader::new(args.get_trd_files(), args);
         let last_prl = prl_parser.next();
         let last_trd = trd_parser.next();
         let last_time = match (last_prl, last_trd) {
@@ -45,8 +45,11 @@ impl<ParsingInfo> HistoryParser<'_, ParsingInfo>
             last_time,
         }
     }
+}
 
-    pub(crate) fn yield_next_event(&mut self) -> Option<HistoryEventWithTime>
+impl<T: InputInterface> HistoryEventProcessor for HistoryParser<'_, T>
+{
+    fn yield_next_event(&mut self) -> Option<HistoryEventWithTime>
     {
         match (&self.last_trd, &self.last_prl) {
             (Some(trd), Some(prl)) => {

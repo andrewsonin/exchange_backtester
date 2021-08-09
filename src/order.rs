@@ -15,7 +15,7 @@ pub(crate) trait PricedOrder
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Debug)]
-pub(crate) struct OrderInfo {
+pub struct OrderInfo {
     pub order_id: OrderID,
     pub size: Size,
     pub direction: Direction,

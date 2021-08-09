@@ -1,9 +1,26 @@
 use crate::exchange::{Exchange, interface::private::AggressiveOrderType};
-use crate::history::types::{HistoryEvent, HistoryTickType, OrderOrigin};
+use crate::history::{
+    parser::HistoryEventProcessor,
+    types::{HistoryEvent, OrderOrigin},
+};
 use crate::input::InputInterface;
-use crate::order::{MarketOrder, Order};
+use crate::order::{LimitOrder, MarketOrder, Order, OrderInfo};
+use crate::prelude::OrderID;
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
-use crate::types::{Direction, Size, Timestamp};
+use crate::types::{Direction, Price, Size, Timestamp};
+
+pub(crate) struct TrdDummyOrder {
+    size: Size,
+    direction: Direction,
+}
+
+impl Order for TrdDummyOrder {
+    fn get_order_id(&self) -> OrderID { unreachable!("get_order_id could not be called for TrdDummyOrder") }
+    fn get_order_size(&self) -> Size { self.size }
+    fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
+    fn get_order_direction(&self) -> Direction { self.direction }
+    fn extract_body(self) -> OrderInfo { unreachable!("extract_body could not be called for TrdDummyOrder") }
+}
 
 impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
 Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
@@ -14,44 +31,46 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     pub(crate)
     fn handle_history_event(&mut self, event: HistoryEvent)
     {
-        match event.tick_type {
-            HistoryTickType::PRL => { self.handle_prl_event(event) }
-            HistoryTickType::TRD => { self.handle_trd_event(event) }
+        match event {
+            HistoryEvent::PRL((price, order_info)) => { self.handle_prl_event(price, order_info) }
+            HistoryEvent::TRD((size, direction)) => { self.handle_trd_event(size, direction) }
         }
         if let Some(event) = self.history_reader.yield_next_event() {
             self.event_queue.schedule_history_event(event)
         }
     }
 
-    fn handle_prl_event(&mut self, event: HistoryEvent)
+    fn handle_prl_event(&mut self, price: Price, order_info: OrderInfo)
     {
-        if event.get_order_size() == Size(0) {
-            self.remove_prl_entry(event)
-        } else if self.history_order_ids.contains(&event.get_order_id()) {
-            self.update_traded_prl_entry(event)
+        if order_info.size == Size(0) {
+            self.remove_prl_entry(price, order_info)
+        } else if self.history_order_ids.contains(&order_info.order_id) {
+            self.update_traded_prl_entry(price, order_info)
         } else {
-            self.insert_limit_order::<HistoryEvent, { OrderOrigin::History }>(event);
-            self.history_order_ids.insert(event.get_order_id());
+            self.insert_limit_order::<LimitOrder, { OrderOrigin::History }>(
+                LimitOrder::new(order_info.order_id, order_info.size, order_info.direction, price)
+            );
+            self.history_order_ids.insert(order_info.order_id);
         }
     }
 
-    fn remove_prl_entry(&mut self, event: HistoryEvent)
+    fn remove_prl_entry(&mut self, price: Price, order_info: OrderInfo)
     {
-        let mut side_cursor = match event.get_order_direction() {
+        let mut side_cursor = match order_info.direction {
             Direction::Buy => { self.bids.cursor_front_mut() }
             Direction::Sell => { self.asks.cursor_front_mut() }
         };
 
         while let Some(ob_level) = side_cursor.current()
         {
-            if ob_level.price != event.price {
+            if ob_level.price != price {
                 side_cursor.move_next();
                 continue;
             }
             let mut level_cursor = ob_level.queue.cursor_front_mut();
             while let Some(limit_order) = level_cursor.current()
             {
-                if limit_order.order_id == event.get_order_id()
+                if limit_order.order_id == order_info.order_id
                     && limit_order.from == OrderOrigin::History {
                     break;
                 }
@@ -64,8 +83,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                         remove_prl_entry :: ERROR in case of non-trading Trader :: \
                         Order with such ID {:?} does not exist at the OB level with corresponding price: {:?}",
                         self.current_time,
-                        event.get_order_id(),
-                        event.price
+                        order_info.order_id,
+                        price
                     )
                 }
                 break;
@@ -73,13 +92,13 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             if ob_level.queue.is_empty() {
                 side_cursor.remove_current();
             }
-            if !self.history_order_ids.remove(&event.get_order_id()) && DEBUG {
+            if !self.history_order_ids.remove(&order_info.order_id) && DEBUG {
                 eprintln!(
                     "{} :: \
                     remove_prl_entry :: ERROR in case of non-trading Trader :: \
                     History order HashSet does not contain such ID: {:?}",
                     self.current_time,
-                    event.get_order_id()
+                    order_info.order_id
                 )
             }
             return;
@@ -89,16 +108,14 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
                 :: History order has not been deleted: {:?}",
                 self.current_time,
-                event.get_order_id()
+                order_info.order_id
             )
         }
     }
 
-    fn update_traded_prl_entry(&mut self, event: HistoryEvent)
+    fn update_traded_prl_entry(&mut self, price: Price, updated: OrderInfo)
     {
-        let price = event.price;
-        let event = event.order_info;
-        let side = match event.direction {
+        let side = match updated.direction {
             Direction::Buy => { &mut self.bids }
             Direction::Sell => { &mut self.asks }
         };
@@ -124,7 +141,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         let order = match ob_level.queue
             .iter_mut()
             .skip_while(|order|
-                order.order_id != event.order_id || order.from != OrderOrigin::History
+                order.order_id != updated.order_id || order.from != OrderOrigin::History
             )
             .next()
         {
@@ -136,19 +153,19 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                          :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                          :: OB level does not contain history order with such ID: {:?}",
                         self.current_time,
-                        event.order_id
+                        updated.order_id
                     );
                 }
                 return;
             }
         };
-        order.size = event.size
+        order.size = updated.size
     }
 
-    fn handle_trd_event(&mut self, event: HistoryEvent)
+    fn handle_trd_event(&mut self, size: Size, direction: Direction)
     {
-        self.insert_aggressive_order::<{ AggressiveOrderType::HistoryMarketOrder }>(
-            MarketOrder::new(event.get_order_id(), event.get_order_size(), event.get_order_direction())
+        self.insert_aggressive_order::<TrdDummyOrder, { AggressiveOrderType::HistoryMarketOrder }>(
+            TrdDummyOrder { size, direction }
         )
     }
 }

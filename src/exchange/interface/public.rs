@@ -2,7 +2,7 @@ use crate::exchange::{
     Exchange,
     trades::history::TradesHistory,
 };
-use crate::history::parser::HistoryParser;
+use crate::history::parser::{HistoryParser, HistoryEventProcessor};
 use crate::input::InputInterface;
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::Timestamp;

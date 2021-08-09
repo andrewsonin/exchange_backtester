@@ -55,7 +55,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     }
 
     pub(crate)
-    fn insert_aggressive_order<const ORDER_TYPE: AggressiveOrderType>(&mut self, mut order: MarketOrder)
+    fn insert_aggressive_order<O, const ORDER_TYPE: AggressiveOrderType>(&mut self, mut order: O)
+        where O: Order
     {
         let mut side_cursor = match order.get_order_direction() {
             Direction::Buy => { self.asks.cursor_front_mut() }
@@ -164,7 +165,11 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             }
         }
         match ORDER_TYPE {
-            TraderMarketOrder => { self.trader_pending_market_orders.push_back(order) }
+            TraderMarketOrder => {
+                self.trader_pending_market_orders.push_back(
+                    MarketOrder::new(order.get_order_id(), order.get_order_size(), order.get_order_direction())
+                )
+            }
             HistoryMarketOrder => {
                 if DEBUG {
                     eprintln!(
@@ -258,15 +263,23 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             if intersection_size != Size(0) {
                 let order = MarketOrder::new(order.order_id, intersection_size, order.direction);
                 match COME_FROM {
-                    OrderOrigin::History => { self.insert_aggressive_order::<{ HistoryIntersectingLimitOrder }>(order) }
-                    OrderOrigin::Trader => { self.insert_aggressive_order::<{ TraderIntersectingLimitOrder }>(order) }
+                    OrderOrigin::History => {
+                        self.insert_aggressive_order::<MarketOrder, { HistoryIntersectingLimitOrder }>(order)
+                    }
+                    OrderOrigin::Trader => {
+                        self.insert_aggressive_order::<MarketOrder, { TraderIntersectingLimitOrder }>(order)
+                    }
                 }
             }
         } else {
             let order = MarketOrder::new(order.order_id, order.size, order.direction);
             match COME_FROM {
-                OrderOrigin::History => { self.insert_aggressive_order::<{ AggressiveOrderType::HistoryMarketOrder }>(order) }
-                OrderOrigin::Trader => { self.insert_aggressive_order::<{ AggressiveOrderType::TraderMarketOrder }>(order) }
+                OrderOrigin::History => {
+                    self.insert_aggressive_order::<MarketOrder, { AggressiveOrderType::HistoryMarketOrder }>(order)
+                }
+                OrderOrigin::Trader => {
+                    self.insert_aggressive_order::<MarketOrder, { AggressiveOrderType::TraderMarketOrder }>(order)
+                }
             }
             return;
         }

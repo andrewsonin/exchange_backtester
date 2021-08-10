@@ -1,7 +1,7 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, LinkedList};
 
-use crate::history::types::{HistoryEvent, HistoryEventWithTime, OrderOrigin};
+use crate::history::types::{HistoryEvent, HistoryEventBody, OrderOrigin};
 use crate::message::{ExchangeReply, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
 use crate::trader::Trader;
 use crate::types::{Duration, OrderID, Price, Size, Timestamp};
@@ -34,7 +34,7 @@ pub(crate) struct Event {
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum EventBody {
-    HistoryEvent(HistoryEvent),
+    HistoryEvent(HistoryEventBody),
     TraderRequest(TraderRequest),
     ExchangeReply(ExchangeReply),
     SubscriptionUpdate(SubscriptionUpdate),
@@ -65,7 +65,7 @@ impl EventQueue {
     pub(crate) fn schedule_reply_for_trader(&mut self,
                                             reply: ExchangeReply,
                                             current_time: Timestamp,
-                                            trader: &dyn Trader) {
+                                            trader: &mut dyn Trader) {
         self.push(
             Event {
                 timestamp: current_time + Duration::nanoseconds(trader.exchange_to_trader_latency() as i64),
@@ -74,7 +74,7 @@ impl EventQueue {
         )
     }
 
-    pub(crate) fn schedule_history_event(&mut self, event: HistoryEventWithTime) {
+    pub(crate) fn schedule_history_event(&mut self, event: HistoryEvent) {
         self.push(
             Event {
                 timestamp: event.timestamp,

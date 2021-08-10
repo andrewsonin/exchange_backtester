@@ -1,20 +1,18 @@
 use crate::exchange::{Exchange, interface::private::AggressiveOrderType};
 use crate::history::{
-    parser::HistoryEventProcessor,
-    types::{HistoryEvent, OrderOrigin},
+    parser::EventProcessor,
+    types::{HistoryEventBody, OrderOrigin},
 };
-use crate::input::InputInterface;
-use crate::order::{LimitOrder, MarketOrder, Order, OrderInfo};
-use crate::prelude::OrderID;
+use crate::order::{LimitOrder, Order, OrderInfo};
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
-use crate::types::{Direction, Price, Size, Timestamp};
+use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 
-pub(crate) struct TrdDummyOrder {
+struct TRDummyOrder {
     size: Size,
     direction: Direction,
 }
 
-impl Order for TrdDummyOrder {
+impl Order for TRDummyOrder {
     fn get_order_id(&self) -> OrderID { unreachable!("get_order_id could not be called for TrdDummyOrder") }
     fn get_order_size(&self) -> Size { self.size }
     fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
@@ -22,20 +20,20 @@ impl Order for TrdDummyOrder {
     fn extract_body(self) -> OrderInfo { unreachable!("extract_body could not be called for TrdDummyOrder") }
 }
 
-impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
     pub(crate)
-    fn handle_history_event(&mut self, event: HistoryEvent)
+    fn handle_history_event(&mut self, event: HistoryEventBody)
     {
         match event {
-            HistoryEvent::PRL((price, order_info)) => { self.handle_prl_event(price, order_info) }
-            HistoryEvent::TRD((size, direction)) => { self.handle_trd_event(size, direction) }
+            HistoryEventBody::PRL((price, order_info)) => { self.handle_prl_event(price, order_info) }
+            HistoryEventBody::TRD((size, direction)) => { self.handle_trd_event(size, direction) }
         }
-        if let Some(event) = self.history_reader.yield_next_event() {
+        if let Some(event) = self.event_processor.yield_next_event() {
             self.event_queue.schedule_history_event(event)
         }
     }
@@ -164,8 +162,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
 
     fn handle_trd_event(&mut self, size: Size, direction: Direction)
     {
-        self.insert_aggressive_order::<TrdDummyOrder, { AggressiveOrderType::HistoryMarketOrder }>(
-            TrdDummyOrder { size, direction }
+        self.insert_aggressive_order::<TRDummyOrder, { AggressiveOrderType::HistoryMarketOrder }>(
+            TRDummyOrder { size, direction }
         )
     }
 }

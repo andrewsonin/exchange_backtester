@@ -3,8 +3,7 @@ use std::{cmp::Ordering, collections::LinkedList, iter::FromIterator};
 use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
-use crate::history::types::OrderOrigin;
-use crate::input::InputInterface;
+use crate::history::{parser::EventProcessor, types::OrderOrigin};
 use crate::message::{
     CancellationReason,
     DiscardingReason::ZeroSize,
@@ -29,11 +28,11 @@ pub(crate) enum AggressiveOrderType {
     HistoryIntersectingLimitOrder,
 }
 
-impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
     pub(crate)
     fn cleanup(&mut self) {
@@ -440,7 +439,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply) {
         let current_time = self.current_time;
         let trader_reactions = self.trader.handle_exchange_reply(reply);
-        let trader = &self.trader;
+        let trader = &mut self.trader;
         self.event_queue.extend(
             trader_reactions.into_iter()
                 .map(
@@ -481,7 +480,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         if let Some(freq) = SUBSCRIPTIONS.wakeup {
             let current_time = self.current_time;
             let trader_reactions = self.trader.handle_wakeup(current_time);
-            let trader = &self.trader;
+            let trader = &mut self.trader;
             self.event_queue.extend(
                 trader_reactions.into_iter()
                     .map(

@@ -1,18 +1,17 @@
 use std::collections::hash_map::Entry;
 
 use crate::exchange::{Exchange, interface::private::AggressiveOrderType, types::{Event, EventBody}};
-use crate::history::types::OrderOrigin;
-use crate::input::InputInterface;
+use crate::history::{parser::EventProcessor, types::OrderOrigin};
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason, SubscriptionUpdate};
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, Duration, OrderID, Timestamp};
 
-impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
     pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate) {
         let current_time = self.current_time;
@@ -25,7 +24,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
                 self.trader.handle_trade_info_update(current_time, trade_info)
             }
         };
-        let trader = &self.trader;
+        let trader = &mut self.trader;
         self.event_queue.extend(
             trader_reactions
                 .into_iter()

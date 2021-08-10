@@ -1,5 +1,5 @@
-use crate::history::types::HistoryEventWithTime;
+use crate::history::types::HistoryEvent;
 
-pub trait HistoryEventProcessor {
-    fn yield_next_event(&mut self) -> Option<HistoryEventWithTime>;
+pub trait EventProcessor {
+    fn yield_next_event(&mut self) -> Option<HistoryEvent>;
 }

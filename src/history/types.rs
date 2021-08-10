@@ -3,7 +3,7 @@ use std::str::FromStr;
 use csv::{ReaderBuilder, StringRecord};
 
 use crate::input::InputInterface;
-use crate::order::{Order, OrderInfo, PricedOrder};
+use crate::order::OrderInfo;
 use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 use crate::utils::ExpectWith;
 
@@ -14,16 +14,16 @@ pub(crate) enum OrderOrigin {
 }
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
-pub enum HistoryEvent {
+pub enum HistoryEventBody {
     TRD((Size, Direction)),
     PRL((Price, OrderInfo)),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub struct HistoryEventWithTime
+pub struct HistoryEvent
 {
     pub(crate) timestamp: Timestamp,
-    pub(crate) event: HistoryEvent,
+    pub(crate) event: HistoryEventBody,
 }
 
 pub(crate) struct PRLColumnIndexInfo
@@ -40,9 +40,10 @@ pub(crate) struct TRDColumnIndexInfo
     size_idx: usize,
     timestamp_idx: usize,
     buy_sell_flag_idx: usize,
+    order_id_idx: usize,
 }
 
-impl HistoryEventWithTime
+impl HistoryEvent
 {
     pub(crate) fn parse_prl(record: StringRecord,
                             col_idx_info: &PRLColumnIndexInfo,
@@ -81,9 +82,10 @@ impl HistoryEventWithTime
 
     pub(crate) fn parse_trd(record: StringRecord,
                             col_idx_info: &TRDColumnIndexInfo,
-                            dt_format: &str) -> (Timestamp, Size, Direction)
+                            dt_format: &str) -> (Timestamp, Size, Direction, OrderID)
     {
         let timestamp = &record[col_idx_info.timestamp_idx];
+        let order_id = &record[col_idx_info.order_id_idx];
         let size = &record[col_idx_info.size_idx];
         let bs_flag = &record[col_idx_info.buy_sell_flag_idx];
         (
@@ -99,7 +101,12 @@ impl HistoryEventWithTime
                 "0" | "B" | "b" | "False" | "false" => { Direction::Buy }
                 "1" | "S" | "s" | "True" | "true" => { Direction::Sell }
                 _ => { panic!("Cannot parse buy-sell flag: {}", bs_flag) }
-            }
+            },
+            OrderID(
+                u64::from_str(order_id).expect_with(
+                    || format!("Cannot parse to u64: {}", order_id)
+                )
+            )
         )
     }
 }
@@ -184,10 +191,12 @@ impl TRDColumnIndexInfo
     fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> TRDColumnIndexInfo
         where ParsingInfo: InputInterface
     {
+        let mut order_id_idx: Option<usize> = None;
         let mut timestamp_idx: Option<usize> = None;
         let mut size_idx: Option<usize> = None;
         let mut buy_sell_flag_idx: Option<usize> = None;
 
+        let order_id_colname = args.get_order_id_colname();
         let timestamp_colname = args.get_order_timestamp_colname();
         let size_colname = args.get_order_size_colname();
         let bs_flag_colname = args.get_order_bs_flag_colname();
@@ -201,7 +210,12 @@ impl TRDColumnIndexInfo
             .iter()
             .enumerate()
         {
-            if header == timestamp_colname {
+            if header == order_id_colname {
+                if let Some(_) = order_id_idx {
+                    panic!("Duplicate column {} in the file: {}", order_id_colname, path)
+                }
+                order_id_idx = Some(i)
+            } else if header == timestamp_colname {
                 if let Some(_) = timestamp_idx {
                     panic!("Duplicate column {} in the file: {}", timestamp_colname, path)
                 }
@@ -227,6 +241,9 @@ impl TRDColumnIndexInfo
             ),
             buy_sell_flag_idx: buy_sell_flag_idx.expect_with(
                 || format!("Cannot find {} column in the CSV-file: {}", bs_flag_colname, path)
+            ),
+            order_id_idx: order_id_idx.expect_with(
+                || format!("Cannot find {} column in the CSV-file: {}", order_id_colname, path)
             ),
         }
     }

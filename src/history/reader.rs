@@ -4,10 +4,10 @@ use std::io::{BufRead, BufReader};
 
 use csv::ReaderBuilder;
 
-use crate::history::types::{HistoryEvent, HistoryEventWithTime, PRLColumnIndexInfo, TRDColumnIndexInfo};
+use crate::history::types::{HistoryEvent, PRLColumnIndexInfo, TRDColumnIndexInfo};
 use crate::input::InputInterface;
 use crate::order::OrderInfo;
-use crate::types::{Direction, Price, Size, Timestamp};
+use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 use crate::utils::ExpectWith;
 
 pub(crate)
@@ -39,23 +39,22 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
     }
 
     pub(crate)
-    fn next(&mut self) -> Option<HistoryEventWithTime>
+    fn next(&mut self) -> Option<(Timestamp, Price, OrderInfo)>
     {
         match self.buffered_entries.pop_front() {
-            Some((timestamp, price, order_info)) => {
-                Some(HistoryEventWithTime { timestamp, event: HistoryEvent::PRL((price, order_info)) })
-            }
             None => loop {
                 match self.buffer_next_file() {
                     Ok(_) => {
-                        if let Some((timestamp, price, order_info)) = self.buffered_entries.pop_front() {
-                            return Some(HistoryEventWithTime { timestamp, event: HistoryEvent::PRL((price, order_info)) });
+                        let res = self.buffered_entries.pop_front();
+                        if res.is_some() {
+                            return res;
                         }
                         // Continue loop in case when CSV-file has 0 entries
                     }
                     Err(_) => { return None; }
                 }
             }
+            res => { res }
         }
     }
 
@@ -80,7 +79,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
                 .zip(2..)
                 .map(
                     |(record, row)|
-                        HistoryEventWithTime::parse_prl(
+                        HistoryEvent::parse_prl(
                             record.expect_with(
                                 || format!("Cannot parse {}-th CSV-record for the file: {}", row, file_to_read)
                             ),
@@ -98,7 +97,7 @@ pub(crate)
 struct TRDReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
-    buffered_entries: VecDeque<(Timestamp, Size, Direction)>,
+    buffered_entries: VecDeque<(Timestamp, Size, Direction, OrderID)>,
     args: &'a ParsingInfo,
 }
 
@@ -123,23 +122,22 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
     }
 
     pub(crate)
-    fn next(&mut self) -> Option<HistoryEventWithTime>
+    fn next(&mut self) -> Option<(Timestamp, Size, Direction, OrderID)>
     {
         match self.buffered_entries.pop_front() {
-            Some((timestamp, size, direction)) => {
-                Some(HistoryEventWithTime { timestamp, event: HistoryEvent::TRD((size, direction)) })
-            }
             None => loop {
                 match self.buffer_next_file() {
                     Ok(_) => {
-                        if let Some((timestamp, size, direction)) = self.buffered_entries.pop_front() {
-                            return Some(HistoryEventWithTime { timestamp, event: HistoryEvent::TRD((size, direction)) });
+                        let res = self.buffered_entries.pop_front();
+                        if res.is_some() {
+                            return res;
                         }
                         // Continue loop in case when CSV-file has 0 entries
                     }
                     Err(_) => { return None; }
                 }
             }
+            res => { res }
         }
     }
 
@@ -154,7 +152,6 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
             || format!("Cannot read the following file: {}", file_to_read)
         );
         let col_idx_info = TRDColumnIndexInfo::new_for_csv(&file_to_read, self.args);
-        let price_step = self.args.get_price_step();
         let datetime_format = self.args.get_datetime_format();
         self.buffered_entries.extend(
             ReaderBuilder::new()
@@ -164,7 +161,7 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
                 .zip(2..)
                 .map(
                     |(record, row)|
-                        HistoryEventWithTime::parse_trd(
+                        HistoryEvent::parse_trd(
                             record.expect_with(
                                 || format!("Cannot parse {}-th CSV-record for the file: {}", row, file_to_read)
                             ),

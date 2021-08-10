@@ -2,65 +2,63 @@ use crate::exchange::{
     Exchange,
     trades::history::TradesHistory,
 };
-use crate::history::parser::{HistoryParser, HistoryEventProcessor};
-use crate::input::InputInterface;
+use crate::history::parser::EventProcessor;
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::Timestamp;
 
-pub struct ExchangeBuilder<T, TTC, PInfo> {
+pub struct ExchangeBuilder<T, TTC, EP> {
     _dummy_a: T,
     _dummy_b: TTC,
-    _dummy_c: PInfo,
+    _dummy_c: EP,
 }
 
-impl<'a, T, TTC, PInfo> ExchangeBuilder<T, TTC, PInfo>
+impl<'a, T, TTC, EP> ExchangeBuilder<T, TTC, EP>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
     pub
     fn new<const SUBSCRIPTIONS: SubscriptionConfig>(
-        args: &'a PInfo,
+        event_processor: EP,
         trader: &'a mut T,
         is_trading_time: TTC,
-    ) -> Exchange<'a, T, TTC, PInfo, false, SUBSCRIPTIONS>
+    ) -> Exchange<'a, T, TTC, EP, false, SUBSCRIPTIONS>
     {
-        Exchange::build(args, trader, is_trading_time)
+        Exchange::build(event_processor, trader, is_trading_time)
     }
 
     pub
     fn new_debug<const SUBSCRIPTIONS: SubscriptionConfig>(
-        args: &'a PInfo,
+        event_processor: EP,
         trader: &'a mut T,
         is_trading_time: TTC,
-    ) -> Exchange<'a, T, TTC, PInfo, true, SUBSCRIPTIONS>
+    ) -> Exchange<'a, T, TTC, EP, true, SUBSCRIPTIONS>
         where T: Trader,
               TTC: Fn(Timestamp) -> bool,
-              PInfo: InputInterface
+              EP: EventProcessor
     {
-        Exchange::build(args, trader, is_trading_time)
+        Exchange::build(event_processor, trader, is_trading_time)
     }
 }
 
-impl<'a, T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+impl<'a, T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'a, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
-    fn build(args: &'a PInfo,
+    fn build(mut event_processor: EP,
              trader: &'a mut T,
-             is_trading_time: TTC) -> Exchange<'a, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+             is_trading_time: TTC) -> Exchange<'a, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     {
-        let mut history_reader = HistoryParser::new(args);
-        let first_event = match history_reader.yield_next_event() {
+        let first_event = match event_processor.yield_next_event() {
             Some(event) => { event }
             None => { panic!("Does not have any history events") }
         };
 
         let mut exchange = Exchange {
             event_queue: Default::default(),
-            history_reader,
+            event_processor: event_processor,
             history_order_ids: Default::default(),
             bids: Default::default(),
             asks: Default::default(),

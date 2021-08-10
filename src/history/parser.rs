@@ -32,11 +32,9 @@ impl<ParsingInfo: InputInterface> HistoryParser<'_, ParsingInfo>
         let last_prl = prl_parser.next();
         let last_trd = trd_parser.next();
         let last_time = match (last_prl, last_trd) {
-            (Some((prl_ts, _, _, _, _)), Some((trd_ts, _, _, _))) => {
-                min(prl_ts, trd_ts)
-            }
-            (Some((prl_ts, _, _, _, _)), _) => { prl_ts }
-            (_, Some((trd_ts, _, _, _))) => { trd_ts }
+            (Some(prl), Some(trd)) => { min(prl.0, trd.0) }
+            (Some(prl), _) => { prl.0 }
+            (_, Some(trd)) => { trd.0 }
             _ => { unreachable!() }
         };
         HistoryParser {

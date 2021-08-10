@@ -41,7 +41,7 @@ pub enum InabilityToCancelReason {
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum SubscriptionUpdate {
+pub(crate) enum SubscriptionUpdate {
     OrderBook(OrderBookSnapshot),
     TradeInfo(Option<TradeInfo>),
 }

@@ -16,7 +16,7 @@ pub mod prelude {
     pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
     pub use crate::history::parser::{HistoryParser, interface::EventProcessor};
     pub use crate::input;
-    pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput};
+    pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput, InputInterface};
     pub use crate::message::{
         CancellationReason,
         DiscardingReason,

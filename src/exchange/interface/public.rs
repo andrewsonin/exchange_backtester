@@ -33,9 +33,6 @@ impl<'a, T, TTC, EP> ExchangeBuilder<T, TTC, EP>
         trader: &'a mut T,
         is_trading_time: TTC,
     ) -> Exchange<'a, T, TTC, EP, true, TRD_UPDATES_OB, SUBSCRIPTIONS>
-        where T: Trader,
-              TTC: Fn(Timestamp) -> bool,
-              EP: EventProcessor
     {
         Exchange::build(event_processor, trader, is_trading_time)
     }
@@ -58,7 +55,7 @@ Exchange<'a, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
 
         let mut exchange = Exchange {
             event_queue: Default::default(),
-            event_processor: event_processor,
+            event_processor,
             history_order_ids: Default::default(),
             bids: Default::default(),
             asks: Default::default(),

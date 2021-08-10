@@ -55,8 +55,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
 
     const fn react_with_history_limit_orders<const ORDER_TYPE: AggressiveOrderType>() -> bool {
         match (ORDER_TYPE, TRD_UPDATES_OB) {
-            (TraderMarketOrder | TraderIntersectingLimitOrder, _) => { true }
-            (HistoryMarketOrder | HistoryIntersectingLimitOrder, true) => { true }
+            (TraderMarketOrder | TraderIntersectingLimitOrder, _) | (_, true) => { true }
             _ => { false }
         }
     }
@@ -92,7 +91,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     Ordering::Less => {
                         // (OrderExecuted, OrderPartiallyExecuted)
                         let exec_size = order.get_order_size();
-                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                        }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
                                 let reply = OrderExecuted(order.get_order_id(), exec_size, price);
@@ -116,7 +117,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     Ordering::Equal => {
                         // (OrderExecuted, OrderExecuted)
                         let exec_size = order.get_order_size();
-                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                        }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
                                 let reply = OrderExecuted(order.get_order_id(), exec_size, price);
@@ -148,7 +151,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         // (OrderPartiallyExecuted, OrderExecuted)
                         let exec_size = limit_order.size;
                         *order.mut_order_size() -= exec_size;
-                        self.executed_trades.push((price, exec_size, order.get_order_direction()));
+                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                        }
                         if Self::is_trader_aggressive_order::<ORDER_TYPE>() {
                             let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
                             self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
@@ -248,7 +253,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         let reply = OrderExecuted(order.get_order_id(), exec_size, price);
                         self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                     }
-                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
+                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                    }
                     return;
                 }
                 Ordering::Equal => {
@@ -260,7 +267,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         let reply = OrderExecuted(order.get_order_id(), exec_size, price);
                         self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                     }
-                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
+                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                    }
                     cursor.remove_current();
                     return;
                 }
@@ -274,7 +283,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
                         self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                     }
-                    self.executed_trades.push((price, exec_size, pending.get_order_direction()));
+                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                    }
                     cursor.remove_current();
                 }
             }

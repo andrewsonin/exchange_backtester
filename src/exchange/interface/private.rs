@@ -92,7 +92,9 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                             let reply = OrderPartiallyExecuted(limit_order.order_id, exec_size, price);
                             self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                             limit_order.size -= exec_size
-                        }
+                        } else if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                            limit_order.size -= exec_size
+                        };
                         return;
                     }
                     Ordering::Equal => {
@@ -118,7 +120,12 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                             if level.queue.is_empty() {
                                 side_cursor.remove_current();
                             }
-                        }
+                        } else if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                            level_cursor.remove_current();
+                            if level.queue.is_empty() {
+                                side_cursor.remove_current();
+                            }
+                        };
                         return;
                     }
                     Ordering::Greater => {
@@ -132,12 +139,27 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                         }
                         match limit_order.from {
                             OrderOrigin::History => {
-                                level_cursor.move_next();
-                                match level_cursor.current() {
-                                    Some(entry) => { limit_order = entry }
-                                    None => {
-                                        side_cursor.move_next();
-                                        break;
+                                if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                                    level_cursor.remove_current();
+                                    match level_cursor.current() {
+                                        Some(entry) => { limit_order = entry }
+                                        None => {
+                                            if level.queue.is_empty() {
+                                                side_cursor.remove_current();
+                                            } else {
+                                                side_cursor.move_next();
+                                            }
+                                            break;
+                                        }
+                                    }
+                                } else {
+                                    level_cursor.move_next();
+                                    match level_cursor.current() {
+                                        Some(entry) => { limit_order = entry }
+                                        None => {
+                                            side_cursor.move_next();
+                                            break;
+                                        }
                                     }
                                 }
                             }

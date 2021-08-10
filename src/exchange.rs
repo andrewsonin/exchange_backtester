@@ -1,8 +1,7 @@
 use std::collections::{HashMap, HashSet, LinkedList};
 
 use crate::exchange::{trades::history::TradesHistory, types::{EventQueue, OrderBookLevel}};
-use crate::history::parser::HistoryParser;
-use crate::input::InputInterface;
+use crate::history::parser::EventProcessor;
 use crate::order::MarketOrder;
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, OrderID, Price, Timestamp};
@@ -12,16 +11,16 @@ pub(crate) mod types;
 pub(crate) mod trades;
 
 pub struct Exchange<
-    'a, T, TradingTimeCriterion, ParsingInfo,
+    'a, T, TradingTimeCriterion, EP,
     const DEBUG: bool,
     const SUBSCRIPTIONS: SubscriptionConfig
 >
     where T: Trader,
           TradingTimeCriterion: Fn(Timestamp) -> bool,
-          ParsingInfo: InputInterface
+          EP: EventProcessor
 {
     event_queue: EventQueue,
-    history_reader: HistoryParser<'a, ParsingInfo>,
+    event_processor: EP,
     history_order_ids: HashSet<OrderID>,
 
     bids: LinkedList<OrderBookLevel>,

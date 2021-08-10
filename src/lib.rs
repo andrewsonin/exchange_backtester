@@ -14,6 +14,7 @@ pub mod constants;
 pub mod prelude {
     pub use crate::constants;
     pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
+    pub use crate::history::parser::{HistoryParser, interface::EventProcessor};
     pub use crate::input;
     pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput};
     pub use crate::message::{
@@ -23,7 +24,11 @@ pub mod prelude {
         InabilityToCancelReason,
         TraderRequest,
     };
-    pub use crate::trader::{examples, subscriptions::SubscriptionConfig, Trader};
+    pub use crate::trader::{
+        examples,
+        subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, SubscriptionConfig, TradeInfo},
+        Trader,
+    };
     pub use crate::types::{
         Direction,
         Duration,
@@ -32,6 +37,7 @@ pub mod prelude {
         OrderID,
         Price,
         Size,
+        Timelike,
         Timestamp,
     };
     pub use crate::utils::ExpectWith;
@@ -45,7 +51,8 @@ mod integration {
 
     use crate::input::default::DATETIME_FORMAT;
     use crate::prelude::*;
-    use crate::utils::SOURCE_DIR;
+
+    const SOURCE_DIR: &str = env!("CARGO_MANIFEST_DIR");
 
     fn prepare_testing(test_name: &str) -> StaticInput {
         let test_dir = Path::new(SOURCE_DIR)
@@ -77,6 +84,7 @@ mod integration {
     #[test]
     fn test_01() {
         let input = prepare_testing("test_01");
+        let history_parser = HistoryParser::new(&input);
         let mut trader = examples::VoidTrader;
 
         let end_of_trades = Timestamp::parse_from_str("2019-03-04 12:11:12", DATETIME_FORMAT)
@@ -90,7 +98,7 @@ mod integration {
             .with_periodic_wakeup(constants::ONE_MINUTE);
 
         let mut exchange = ExchangeBuilder::new_debug::<SUBSCRIPTIONS>(
-            &input,
+            history_parser,
             &mut trader,
             is_trading_time,
         );

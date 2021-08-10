@@ -3,8 +3,7 @@ use std::{cmp::Ordering, collections::LinkedList, iter::FromIterator};
 use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
-use crate::history::types::OrderOrigin;
-use crate::input::InputInterface;
+use crate::history::{parser::EventProcessor, types::OrderOrigin};
 use crate::message::{
     CancellationReason,
     DiscardingReason::ZeroSize,
@@ -29,11 +28,11 @@ pub(crate) enum AggressiveOrderType {
     HistoryIntersectingLimitOrder,
 }
 
-impl<T, TTC, PInfo, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
-          PInfo: InputInterface
+          EP: EventProcessor
 {
     pub(crate)
     fn cleanup(&mut self) {
@@ -55,7 +54,8 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     }
 
     pub(crate)
-    fn insert_aggressive_order<const ORDER_TYPE: AggressiveOrderType>(&mut self, mut order: MarketOrder)
+    fn insert_aggressive_order<O, const ORDER_TYPE: AggressiveOrderType>(&mut self, mut order: O)
+        where O: Order
     {
         let mut side_cursor = match order.get_order_direction() {
             Direction::Buy => { self.asks.cursor_front_mut() }
@@ -164,7 +164,11 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             }
         }
         match ORDER_TYPE {
-            TraderMarketOrder => { self.trader_pending_market_orders.push_back(order) }
+            TraderMarketOrder => {
+                self.trader_pending_market_orders.push_back(
+                    MarketOrder::new(order.get_order_id(), order.get_order_size(), order.get_order_direction())
+                )
+            }
             HistoryMarketOrder => {
                 if DEBUG {
                     eprintln!(
@@ -258,15 +262,23 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
             if intersection_size != Size(0) {
                 let order = MarketOrder::new(order.order_id, intersection_size, order.direction);
                 match COME_FROM {
-                    OrderOrigin::History => { self.insert_aggressive_order::<{ HistoryIntersectingLimitOrder }>(order) }
-                    OrderOrigin::Trader => { self.insert_aggressive_order::<{ TraderIntersectingLimitOrder }>(order) }
+                    OrderOrigin::History => {
+                        self.insert_aggressive_order::<MarketOrder, { HistoryIntersectingLimitOrder }>(order)
+                    }
+                    OrderOrigin::Trader => {
+                        self.insert_aggressive_order::<MarketOrder, { TraderIntersectingLimitOrder }>(order)
+                    }
                 }
             }
         } else {
             let order = MarketOrder::new(order.order_id, order.size, order.direction);
             match COME_FROM {
-                OrderOrigin::History => { self.insert_aggressive_order::<{ AggressiveOrderType::HistoryMarketOrder }>(order) }
-                OrderOrigin::Trader => { self.insert_aggressive_order::<{ AggressiveOrderType::TraderMarketOrder }>(order) }
+                OrderOrigin::History => {
+                    self.insert_aggressive_order::<MarketOrder, { AggressiveOrderType::HistoryMarketOrder }>(order)
+                }
+                OrderOrigin::Trader => {
+                    self.insert_aggressive_order::<MarketOrder, { AggressiveOrderType::TraderMarketOrder }>(order)
+                }
             }
             return;
         }
@@ -427,7 +439,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
     pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply) {
         let current_time = self.current_time;
         let trader_reactions = self.trader.handle_exchange_reply(reply);
-        let trader = &self.trader;
+        let trader = &mut self.trader;
         self.event_queue.extend(
             trader_reactions.into_iter()
                 .map(
@@ -468,7 +480,7 @@ Exchange<'_, T, TTC, PInfo, DEBUG, SUBSCRIPTIONS>
         if let Some(freq) = SUBSCRIPTIONS.wakeup {
             let current_time = self.current_time;
             let trader_reactions = self.trader.handle_wakeup(current_time);
-            let trader = &self.trader;
+            let trader = &mut self.trader;
             self.event_queue.extend(
                 trader_reactions.into_iter()
                     .map(

@@ -3,7 +3,7 @@ use crate::history::{
     parser::EventProcessor,
     types::{HistoryEventBody, OrderOrigin},
 };
-use crate::order::{LimitOrder, Order, OrderInfo};
+use crate::order::{LimitOrder, Order};
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 
@@ -17,7 +17,6 @@ impl Order for TRDummyOrder {
     fn get_order_size(&self) -> Size { self.size }
     fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
     fn get_order_direction(&self) -> Direction { self.direction }
-    fn extract_body(self) -> OrderInfo { unreachable!("extract_body could not be called for TrdDummyOrder") }
 }
 
 impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
@@ -30,7 +29,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     fn handle_history_event(&mut self, event: HistoryEventBody)
     {
         match event {
-            HistoryEventBody::PRL((price, order_info)) => { self.handle_prl_event(price, order_info) }
+            HistoryEventBody::PRL((size, direction, price, order_id)) => {
+                self.handle_prl_event(size, direction, price, order_id)
+            }
             HistoryEventBody::TRD((size, direction)) => { self.handle_trd_event(size, direction) }
         }
         if let Some(event) = self.event_processor.yield_next_event() {
@@ -38,23 +39,23 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
         }
     }
 
-    fn handle_prl_event(&mut self, price: Price, order_info: OrderInfo)
+    fn handle_prl_event(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
     {
-        if order_info.size == Size(0) {
-            self.remove_prl_entry(price, order_info)
-        } else if self.history_order_ids.contains(&order_info.order_id) {
-            self.update_traded_prl_entry(price, order_info)
+        if size == Size(0) {
+            self.remove_prl_entry(direction, price, order_id)
+        } else if self.history_order_ids.contains(&order_id) {
+            self.update_traded_prl_entry(size, direction, price, order_id)
         } else {
             self.insert_limit_order::<LimitOrder, { OrderOrigin::History }>(
-                LimitOrder::new(order_info.order_id, order_info.size, order_info.direction, price)
+                LimitOrder::new(order_id, size, direction, price)
             );
-            self.history_order_ids.insert(order_info.order_id);
+            self.history_order_ids.insert(order_id);
         }
     }
 
-    fn remove_prl_entry(&mut self, price: Price, order_info: OrderInfo)
+    fn remove_prl_entry(&mut self, direction: Direction, price: Price, order_id: OrderID)
     {
-        let mut side_cursor = match order_info.direction {
+        let mut side_cursor = match direction {
             Direction::Buy => { self.bids.cursor_front_mut() }
             Direction::Sell => { self.asks.cursor_front_mut() }
         };
@@ -68,8 +69,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
             let mut level_cursor = ob_level.queue.cursor_front_mut();
             while let Some(limit_order) = level_cursor.current()
             {
-                if limit_order.order_id == order_info.order_id
-                    && limit_order.from == OrderOrigin::History {
+                if limit_order.order_id == order_id && limit_order.from == OrderOrigin::History {
                     break;
                 }
                 level_cursor.move_next();
@@ -81,7 +81,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         remove_prl_entry :: ERROR in case of non-trading Trader :: \
                         Order with such ID {:?} does not exist at the OB level with corresponding price: {:?}",
                         self.current_time,
-                        order_info.order_id,
+                        order_id,
                         price
                     )
                 }
@@ -90,13 +90,13 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
             if ob_level.queue.is_empty() {
                 side_cursor.remove_current();
             }
-            if !self.history_order_ids.remove(&order_info.order_id) && DEBUG {
+            if !self.history_order_ids.remove(&order_id) && DEBUG {
                 eprintln!(
                     "{} :: \
                     remove_prl_entry :: ERROR in case of non-trading Trader :: \
                     History order HashSet does not contain such ID: {:?}",
                     self.current_time,
-                    order_info.order_id
+                    order_id
                 )
             }
             return;
@@ -106,14 +106,14 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                 "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
                 :: History order has not been deleted: {:?}",
                 self.current_time,
-                order_info.order_id
+                order_id
             )
         }
     }
 
-    fn update_traded_prl_entry(&mut self, price: Price, updated: OrderInfo)
+    fn update_traded_prl_entry(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
     {
-        let side = match updated.direction {
+        let side = match direction {
             Direction::Buy => { &mut self.bids }
             Direction::Sell => { &mut self.asks }
         };
@@ -139,7 +139,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
         let order = match ob_level.queue
             .iter_mut()
             .skip_while(|order|
-                order.order_id != updated.order_id || order.from != OrderOrigin::History
+                order.order_id != order_id || order.from != OrderOrigin::History
             )
             .next()
         {
@@ -151,13 +151,13 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                          :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                          :: OB level does not contain history order with such ID: {:?}",
                         self.current_time,
-                        updated.order_id
+                        order_id
                     );
                 }
                 return;
             }
         };
-        order.size = updated.size
+        order.size = size
     }
 
     fn handle_trd_event(&mut self, size: Size, direction: Direction)

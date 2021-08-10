@@ -6,7 +6,6 @@ use csv::ReaderBuilder;
 
 use crate::history::types::{HistoryEvent, PRLColumnIndexInfo, TRDColumnIndexInfo};
 use crate::input::InputInterface;
-use crate::order::OrderInfo;
 use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 use crate::utils::ExpectWith;
 
@@ -14,7 +13,7 @@ pub(crate)
 struct PRLReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
-    buffered_entries: VecDeque<(Timestamp, Price, OrderInfo)>,
+    buffered_entries: VecDeque<(Timestamp, Size, Direction, Price, OrderID)>,
     args: &'a ParsingInfo,
 }
 
@@ -39,7 +38,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
     }
 
     pub(crate)
-    fn next(&mut self) -> Option<(Timestamp, Price, OrderInfo)>
+    fn next(&mut self) -> Option<(Timestamp, Size, Direction, Price, OrderID)>
     {
         match self.buffered_entries.pop_front() {
             None => loop {

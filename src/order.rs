@@ -5,7 +5,6 @@ pub(crate) trait Order {
     fn get_order_size(&self) -> Size;
     fn mut_order_size(&mut self) -> &mut Size;
     fn get_order_direction(&self) -> Direction;
-    fn extract_body(self) -> OrderInfo;
 }
 
 pub(crate) trait PricedOrder
@@ -14,48 +13,45 @@ pub(crate) trait PricedOrder
     fn get_price(&self) -> Price;
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Debug)]
-pub struct OrderInfo {
-    pub order_id: OrderID,
-    pub size: Size,
-    pub direction: Direction,
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub struct MarketOrder {
+    order_id: OrderID,
+    size: Size,
+    direction: Direction,
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct MarketOrder(OrderInfo);
-
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct LimitOrder {
-    info: OrderInfo,
+    order_id: OrderID,
+    size: Size,
+    direction: Direction,
     price: Price,
 }
 
 impl MarketOrder {
-    pub fn new(order_id: OrderID, size: Size, direction: Direction) -> MarketOrder {
-        MarketOrder(OrderInfo { order_id, size, direction })
+    pub const fn new(order_id: OrderID, size: Size, direction: Direction) -> MarketOrder {
+        MarketOrder { order_id, size, direction }
     }
 }
 
 impl LimitOrder {
-    pub fn new(order_id: OrderID, size: Size, direction: Direction, price: Price) -> LimitOrder {
-        LimitOrder { info: OrderInfo { order_id, size, direction }, price }
+    pub const fn new(order_id: OrderID, size: Size, direction: Direction, price: Price) -> LimitOrder {
+        LimitOrder { order_id, size, direction, price }
     }
 }
 
 impl const Order for MarketOrder {
-    fn get_order_id(&self) -> OrderID { self.0.order_id }
-    fn get_order_size(&self) -> Size { self.0.size }
-    fn mut_order_size(&mut self) -> &mut Size { &mut self.0.size }
-    fn get_order_direction(&self) -> Direction { self.0.direction }
-    fn extract_body(self) -> OrderInfo { self.0 }
+    fn get_order_id(&self) -> OrderID { self.order_id }
+    fn get_order_size(&self) -> Size { self.size }
+    fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
+    fn get_order_direction(&self) -> Direction { self.direction }
 }
 
 impl const Order for LimitOrder {
-    fn get_order_id(&self) -> OrderID { self.info.order_id }
-    fn get_order_size(&self) -> Size { self.info.size }
-    fn mut_order_size(&mut self) -> &mut Size { &mut self.info.size }
-    fn get_order_direction(&self) -> Direction { self.info.direction }
-    fn extract_body(self) -> OrderInfo { self.info }
+    fn get_order_id(&self) -> OrderID { self.order_id }
+    fn get_order_size(&self) -> Size { self.size }
+    fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
+    fn get_order_direction(&self) -> Direction { self.direction }
 }
 
 impl const PricedOrder for LimitOrder {

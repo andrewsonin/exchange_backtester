@@ -3,7 +3,6 @@ use std::str::FromStr;
 use csv::{ReaderBuilder, StringRecord};
 
 use crate::input::InputInterface;
-use crate::order::OrderInfo;
 use crate::types::{Direction, OrderID, Price, Size, Timestamp};
 use crate::utils::ExpectWith;
 
@@ -16,7 +15,7 @@ pub(crate) enum OrderOrigin {
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
 pub enum HistoryEventBody {
     TRD((Size, Direction)),
-    PRL((Price, OrderInfo)),
+    PRL((Size, Direction, Price, OrderID)),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -48,7 +47,7 @@ impl HistoryEvent
     pub(crate) fn parse_prl(record: StringRecord,
                             col_idx_info: &PRLColumnIndexInfo,
                             price_step: f64,
-                            dt_format: &str) -> (Timestamp, Price, OrderInfo)
+                            dt_format: &str) -> (Timestamp, Size, Direction, Price, OrderID)
     {
         let timestamp = &record[col_idx_info.timestamp_idx];
         let order_id = &record[col_idx_info.order_id_idx];
@@ -59,24 +58,22 @@ impl HistoryEvent
             Timestamp::parse_from_str(timestamp, dt_format).expect_with(
                 || format!("Cannot parse to NaiveDateTime: {}. Datetime format used: {}", timestamp, dt_format)
             ),
+            Size(
+                u64::from_str(size).expect_with(
+                    || format!("Cannot parse to u64: {}", size)
+                )
+            ),
+            match bs_flag {
+                "0" | "B" | "b" | "False" | "false" => { Direction::Buy }
+                "1" | "S" | "s" | "True" | "true" => { Direction::Sell }
+                _ => { panic!("Cannot parse buy-sell flag: {}", bs_flag) }
+            },
             Price::from_decimal_str(price, price_step),
-            OrderInfo {
-                order_id: OrderID(
-                    u64::from_str(order_id).expect_with(
-                        || format!("Cannot parse to u64: {}", order_id)
-                    )
-                ),
-                size: Size(
-                    u64::from_str(size).expect_with(
-                        || format!("Cannot parse to u64: {}", size)
-                    )
-                ),
-                direction: match bs_flag {
-                    "0" | "B" | "b" | "False" | "false" => { Direction::Buy }
-                    "1" | "S" | "s" | "True" | "true" => { Direction::Sell }
-                    _ => { panic!("Cannot parse buy-sell flag: {}", bs_flag) }
-                },
-            }
+            OrderID(
+                u64::from_str(order_id).expect_with(
+                    || format!("Cannot parse to u64: {}", order_id)
+                )
+            )
         )
     }
 

@@ -28,8 +28,8 @@ pub(crate) enum AggressiveOrderType {
     HistoryIntersectingLimitOrder,
 }
 
-impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor
@@ -51,6 +51,22 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
         }
         self.trader_pending_market_orders.clear();
         self.trader_pending_limit_orders.clear();
+    }
+
+    const fn react_with_history_limit_orders<const ORDER_TYPE: AggressiveOrderType>() -> bool {
+        match (ORDER_TYPE, TRD_UPDATES_OB) {
+            (TraderMarketOrder | TraderIntersectingLimitOrder, _) => { true }
+            (HistoryMarketOrder | HistoryIntersectingLimitOrder, true) => { true }
+            _ => { false }
+        }
+    }
+
+    const fn is_trader_aggressive_order<const ORDER_TYPE: AggressiveOrderType>() -> bool {
+        if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+            true
+        } else {
+            false
+        }
     }
 
     pub(crate)
@@ -92,9 +108,9 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                             let reply = OrderPartiallyExecuted(limit_order.order_id, exec_size, price);
                             self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                             limit_order.size -= exec_size
-                        } else if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                        } else if Self::react_with_history_limit_orders::<ORDER_TYPE>() {
                             limit_order.size -= exec_size
-                        };
+                        }
                         return;
                     }
                     Ordering::Equal => {
@@ -120,7 +136,7 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                             if level.queue.is_empty() {
                                 side_cursor.remove_current();
                             }
-                        } else if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                        } else if Self::react_with_history_limit_orders::<ORDER_TYPE>() {
                             level_cursor.remove_current();
                             if level.queue.is_empty() {
                                 side_cursor.remove_current();
@@ -133,13 +149,13 @@ Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
                         let exec_size = limit_order.size;
                         *order.mut_order_size() -= exec_size;
                         self.executed_trades.push((price, exec_size, order.get_order_direction()));
-                        if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                        if Self::is_trader_aggressive_order::<ORDER_TYPE>() {
                             let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
                             self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
                         }
                         match limit_order.from {
                             OrderOrigin::History => {
-                                if let TraderMarketOrder | TraderIntersectingLimitOrder = ORDER_TYPE {
+                                if Self::react_with_history_limit_orders::<ORDER_TYPE>() {
                                     level_cursor.remove_current();
                                     match level_cursor.current() {
                                         Some(entry) => { limit_order = entry }

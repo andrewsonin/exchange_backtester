@@ -1,4 +1,4 @@
-#![feature(const_generics, const_trait_impl, const_mut_refs, const_option, linked_list_cursors)]
+#![feature(const_generics, const_trait_impl, const_fn_trait_bound, const_mut_refs, const_option, linked_list_cursors)]
 
 mod utils;
 mod types;
@@ -97,7 +97,7 @@ mod integration {
             .trade_info_subscription(constants::ONE_SECOND)
             .with_periodic_wakeup(constants::ONE_MINUTE);
 
-        let mut exchange = ExchangeBuilder::new_debug::<SUBSCRIPTIONS>(
+        let mut exchange = ExchangeBuilder::new_debug::<false, SUBSCRIPTIONS>(
             history_parser,
             &mut trader,
             is_trading_time,

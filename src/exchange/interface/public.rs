@@ -18,21 +18,21 @@ impl<'a, T, TTC, EP> ExchangeBuilder<T, TTC, EP>
           EP: EventProcessor
 {
     pub
-    fn new<const SUBSCRIPTIONS: SubscriptionConfig>(
+    fn new<const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>(
         event_processor: EP,
         trader: &'a mut T,
         is_trading_time: TTC,
-    ) -> Exchange<'a, T, TTC, EP, false, SUBSCRIPTIONS>
+    ) -> Exchange<'a, T, TTC, EP, false, TRD_UPDATES_OB, SUBSCRIPTIONS>
     {
         Exchange::build(event_processor, trader, is_trading_time)
     }
 
     pub
-    fn new_debug<const SUBSCRIPTIONS: SubscriptionConfig>(
+    fn new_debug<const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>(
         event_processor: EP,
         trader: &'a mut T,
         is_trading_time: TTC,
-    ) -> Exchange<'a, T, TTC, EP, true, SUBSCRIPTIONS>
+    ) -> Exchange<'a, T, TTC, EP, true, TRD_UPDATES_OB, SUBSCRIPTIONS>
         where T: Trader,
               TTC: Fn(Timestamp) -> bool,
               EP: EventProcessor
@@ -41,15 +41,15 @@ impl<'a, T, TTC, EP> ExchangeBuilder<T, TTC, EP>
     }
 }
 
-impl<'a, T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'a, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
+impl<'a, T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'a, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor
 {
     fn build(mut event_processor: EP,
              trader: &'a mut T,
-             is_trading_time: TTC) -> Exchange<'a, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
+             is_trading_time: TTC) -> Exchange<'a, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     {
         let first_event = match event_processor.yield_next_event() {
             Some(event) => { event }

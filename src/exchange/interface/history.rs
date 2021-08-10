@@ -20,8 +20,8 @@ impl Order for TRDummyOrder {
     fn extract_body(self) -> OrderInfo { unreachable!("extract_body could not be called for TrdDummyOrder") }
 }
 
-impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor

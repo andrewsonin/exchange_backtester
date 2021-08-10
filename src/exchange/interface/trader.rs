@@ -7,8 +7,8 @@ use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::{subscriptions::SubscriptionConfig, Trader};
 use crate::types::{Direction, Duration, OrderID, Timestamp};
 
-impl<T, TTC, EP, const DEBUG: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, EP, DEBUG, SUBSCRIPTIONS>
+impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
+Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     where T: Trader,
           TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor

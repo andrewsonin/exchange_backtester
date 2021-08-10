@@ -13,6 +13,7 @@ pub(crate) mod trades;
 pub struct Exchange<
     'a, T, TradingTimeCriterion, EP,
     const DEBUG: bool,
+    const TRD_UPDATES_OB: bool,
     const SUBSCRIPTIONS: SubscriptionConfig
 >
     where T: Trader,

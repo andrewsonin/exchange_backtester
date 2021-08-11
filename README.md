@@ -1,20 +1,18 @@
 # Exchange backtester
 
----
-
 Framework that allows you to replay exchange trading history and test your trading strategies.
 
 Written on the pure Rust, it uses some experimental language features such as constant generics. This is necessary in order to instantiate (or not instantiate) machine code as efficiently as possible and calculate everything that is possible at compile time. However, as of now (August 10, 2021), this requires compiling with the `nightly` version of `rustc`.
 
 ## How to use
 
----
-
 1. In order to switch to the `nighly` version, type the following:
+
     ```sh
     rustup default nightly
     ```
 2. Then create an application project that will use `exchange_backtester` as a library:
+
    ```sh
    cargo new <PROJECT_NAME>
    ```
@@ -31,6 +29,7 @@ Written on the pure Rust, it uses some experimental language features such as co
    exchange_backtester = { git = "https://github.com/andrewsonin/exchange_backtester" }
    ```
 3. Implement your custom trading agent. The following is the example of `main.rs` that implements a command line app that reads the trading history and prints the middle price of the spread into the standard output every trading hour or prints the message into the standard error in the order book is empty.
+
    ```rust
    #![feature(const_option, const_trait_impl, const_mut_refs)]
    
@@ -105,8 +104,6 @@ Written on the pure Rust, it uses some experimental language features such as co
    ```
 
 ## How it works
-
----
 
 ### Default version
 

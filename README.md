@@ -30,7 +30,7 @@ Written on the pure Rust, it uses some experimental language features such as co
    [dependencies]
    exchange_backtester = { git = "https://github.com/andrewsonin/exchange_backtester" }
    ```
-3. Implement your custom trading agent. The following is the example of `main.rs` file that implements command line app that reads trading history and prints middle price of the spread into the standard output each hour of trades.
+3. Implement your custom trading agent. The following is the example of `main.rs` that implements a command line app that reads the trading history and prints the middle price of the spread into the standard output every trading hour or prints the message into the standard error in the order book is empty.
    ```rust
    #![feature(const_option, const_trait_impl, const_mut_refs)]
    

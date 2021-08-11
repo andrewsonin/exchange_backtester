@@ -29,10 +29,10 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     fn handle_history_event(&mut self, event: HistoryEventBody)
     {
         match event {
-            HistoryEventBody::PRL((size, direction, price, order_id)) => {
+            HistoryEventBody::PRL(size, direction, price, order_id) => {
                 self.handle_prl_event(size, direction, price, order_id)
             }
-            HistoryEventBody::TRD((size, direction)) => { self.handle_trd_event(size, direction) }
+            HistoryEventBody::TRD(size, direction) => { self.handle_trd_event(size, direction) }
         }
         if let Some(event) = self.event_processor.yield_next_event() {
             self.event_queue.schedule_history_event(event)

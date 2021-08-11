@@ -28,8 +28,10 @@ impl SubscriptionConfig {
             wakeup: None,
         }
     }
-    pub const fn ob_level_subscription_depth(mut self, interval_ns: NonZeroU64, depth: NonZeroUsize) -> Self {
-        self.ob_depth_and_interval_ns = Some((depth.get(), interval_ns));
+    pub const fn ob_level_subscription_depth(mut self, interval_ns: NonZeroU64, depth: usize) -> Self {
+        self.ob_depth_and_interval_ns = Some(
+            (NonZeroUsize::new(depth).unwrap().get(), interval_ns)
+        );
         self
     }
     pub const fn ob_level_subscription_full(mut self, interval_ns: NonZeroU64) -> Self {

@@ -14,15 +14,15 @@ pub(crate) enum OrderOrigin {
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
 pub enum HistoryEventBody {
-    TRD((Size, Direction)),
-    PRL((Size, Direction, Price, OrderID)),
+    TRD(Size, Direction),
+    PRL(Size, Direction, Price, OrderID),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct HistoryEvent
 {
-    pub(crate) timestamp: Timestamp,
-    pub(crate) event: HistoryEventBody,
+    pub timestamp: Timestamp,
+    pub event: HistoryEventBody,
 }
 
 pub(crate) struct PRLColumnIndexInfo

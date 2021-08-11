@@ -23,19 +23,24 @@ pub enum Direction {
 
 impl Price
 {
-    pub(crate)
+    pub
     fn from_decimal_str(string: &str, price_step: f64) -> Self
     {
         let parsed_f64 = f64::from_str(string).expect_with(
             || format!("Cannot parse to f64: {}", string)
         );
-        let price_steps = parsed_f64 / price_step;
+        Self::from_f64(parsed_f64, price_step)
+    }
+
+    pub
+    fn from_f64(value: f64, price_step: f64) -> Self {
+        let price_steps = value / price_step;
         let rounded_price_steps = price_steps.round();
         if (rounded_price_steps - price_steps).abs() > 10e-12 {
             panic!(
                 "Cannot convert f64 {} to Price without loss of precision \
                 with the following price step: {}",
-                parsed_f64,
+                value,
                 price_step
             )
         }

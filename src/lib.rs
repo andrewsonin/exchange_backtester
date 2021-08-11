@@ -14,7 +14,7 @@ pub mod constants;
 pub mod prelude {
     pub use crate::constants;
     pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
-    pub use crate::history::parser::{HistoryParser, interface::EventProcessor};
+    pub use crate::history::{parser::{HistoryParser, interface::EventProcessor}, types::*};
     pub use crate::input;
     pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput, InputInterface};
     pub use crate::message::{
@@ -93,7 +93,7 @@ mod integration {
             timestamp < end_of_trades
         };
         const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-            .ob_level_subscription_depth(constants::ONE_SECOND, NonZeroUsize::new(10).unwrap())
+            .ob_level_subscription_depth(constants::ONE_SECOND, 10)
             .trade_info_subscription(constants::ONE_SECOND)
             .with_periodic_wakeup(constants::ONE_MINUTE);
 

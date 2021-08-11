@@ -341,12 +341,12 @@ const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
 
 fn main() {
     let mut history = HistoryHolder::default();
-    history.add_prl("2020-03-03 12:22:22.31", 3, Direction::Buy, 12.0025, 1);
+    history.add_prl("2020-03-03 12:22:22.31",  3,  Direction::Buy, 12.0025, 1);
     history.add_prl("2020-03-03 14:11:26.33", 22, Direction::Sell, 12.0075, 2);
-    history.add_trd("2020-03-03 16:11:26.33", 2, Direction::Sell);
-    history.add_prl("2020-03-03 16:11:26.33", 1, Direction::Buy, 12.0025, 1);
-    history.add_trd("2020-03-03 18:24:00", 1, Direction::Sell);
-    history.add_prl("2020-03-03 18:24:00", 0, Direction::Buy, 12.0025, 1);
+    history.add_trd("2020-03-03 16:11:26.33",  2, Direction::Sell);
+    history.add_prl("2020-03-03 16:11:26.33",  1,  Direction::Buy, 12.0025, 1);
+    history.add_trd("2020-03-03 18:24:00",     1, Direction::Sell);
+    history.add_prl("2020-03-03 18:24:00",     0,  Direction::Buy, 12.0025, 1);
 
     let mut trader = CustomTrader;
     let mut exchange = ExchangeBuilder::new::<false, SUBSCRIPTIONS>(

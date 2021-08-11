@@ -77,7 +77,7 @@ of `rustc`.
        fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
        fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
        fn handle_exchange_reply(&mut self, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
-       fn set_new_trading_period(&mut self) {}
+       fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
    }
    
    fn main() {
@@ -158,9 +158,7 @@ Note that it is not required that each `PRL` file should strictly correspond to 
 requirement is that the lists of paths to the `PRL` and `TRD` files and the entries in them should be sorted in
 ascending order by time.
 
-## How it works
-
-### Default version
+## How it works (default)
 
 Default version of the backtester simultaneously reads two types of the exchange history backups — `TRD` and `PRL` —
 that should be stored in CSV-format and sorted in ascending order by time. The first one is a representation of all
@@ -192,7 +190,7 @@ fully executed or cancelled (by the market maker or by the exchange at the end o
 
 Let's take a look at the following examples.
 
-#### PRL-file
+### PRL-file
 
 |               Timestamp | SIZE | PRICE | ORDER_ID | BUY_SELL_FLAG |
 | ----------------------- | ---- | ----- | -------- | ------------- |
@@ -205,7 +203,7 @@ Let's take a look at the following examples.
 | 2020-04-02 17:00:34.123 |    0 | 12.08 |        1 |             B |
 | 2020-04-02 18:12:58.248 |    0 | 13.19 |        2 |             S |
 
-#### TRD-file
+### TRD-file
 
 |               Timestamp | SIZE | ORDER_ID | BUY_SELL_FLAG |
 | ----------------------- | ---- | -------- | ------------- |
@@ -222,9 +220,9 @@ it was cancelled. We know this because at this time this order does not have cor
 Vice versa, the order with `ORDER_ID = 1` was placed at `2020-04-02 13:02:44.002` and then was fully executed by two
 subsequent trades at `2020-04-02 14:45:01.948` and `2020-04-02 18:12:58.248`.
 
-### Customizing the backtester
+## Customizing the backtester
 
-#### 1. Ticker history input
+### 1. Ticker history input
 
 In addition to using the default solution, this library allows the programmer to connect other sources of trading
 histories — not just CSV files on disk. This is achieved by creating a custom structure that must implement
@@ -258,7 +256,7 @@ pub struct HistoryEvent
   the `--price-step` in the upper example.
 - `Timestamp` here is just a naming alias to the `chrono::NaiveDateTime`.
 
-##### Example
+#### Example
 
 You can implement your own trading history interface using the following backbone:
 
@@ -301,7 +299,7 @@ impl const Trader for CustomTrader {
     fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
     fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
     fn handle_exchange_reply(&mut self, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
-    fn set_new_trading_period(&mut self) {}
+    fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
 }
 
 #[derive(Default)]
@@ -374,7 +372,7 @@ the trading period after the start of trades determined by the function `is_trad
 | 2020-03-03 18:22:22.310 | 12.005   |
 | 2020-03-03 19:22:22.310 | 12.0075  |
 
-#### 2. Trader Subscription Configuration
+### 2. Trader Subscription Configuration
 
 The exchange notifies the trader about the events happened in two ways.
 
@@ -446,7 +444,7 @@ and `trader_to_exchange_latency` (for trader requests) methods in the `Trader` t
 the same value each time which makes possible to simulate a latency noise. Also note that trader wakeups do not suffer
 from `exchange_to_trader_latency`.
 
-#### 3. ExchangeBuilder
+### 3. ExchangeBuilder
 
 `ExchangeBuilder::new` and `ExchangeBuilder::new_debug` are used to initialize the exchange. They have identical
 signatures except that the latter one create an exchange that prints to the standard error some debug messages while

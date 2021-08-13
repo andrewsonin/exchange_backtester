@@ -436,12 +436,15 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     self.event_queue.push(
                         Event {
                             timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency() as i64),
-                            body: EventBody::SubscriptionUpdate(SubscriptionUpdate::OrderBook(
-                                OrderBookSnapshot {
-                                    bids: get_snapshot(&self.bids),
-                                    asks: get_snapshot(&self.asks),
-                                }
-                            )),
+                            body: EventBody::SubscriptionUpdate(
+                                SubscriptionUpdate::OrderBook(
+                                    OrderBookSnapshot {
+                                        bids: get_snapshot(&self.bids),
+                                        asks: get_snapshot(&self.asks),
+                                    }
+                                ),
+                                self.current_time,
+                            ),
                         }
                     );
                     let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
@@ -462,9 +465,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     self.event_queue.push(
                         Event {
                             timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency() as i64),
-                            body: EventBody::SubscriptionUpdate(SubscriptionUpdate::TradeInfo(
-                                self.executed_trades.get_trade_info()
-                            )),
+                            body: EventBody::SubscriptionUpdate(
+                                SubscriptionUpdate::TradeInfo(
+                                    self.executed_trades.get_trade_info()
+                                ),
+                                self.current_time,
+                            ),
                         }
                     );
                     self.executed_trades.clear();
@@ -484,15 +490,15 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
         }
     }
 
-    pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply) {
-        let current_time = self.current_time;
-        let trader_reactions = self.trader.handle_exchange_reply(reply);
+    pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply, exchange_ts: Timestamp) {
+        let deliver_ts = self.current_time;
+        let trader_reactions = self.trader.handle_exchange_reply(exchange_ts, deliver_ts, reply);
         let trader = &mut self.trader;
         self.event_queue.extend(
             trader_reactions.into_iter()
                 .map(
                     |request| Event {
-                        timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                        timestamp: deliver_ts + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )
@@ -573,8 +579,8 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
         match event.body {
             EventBody::HistoryEvent(event) => { self.handle_history_event(event) }
             EventBody::TraderRequest(request) => { self.handle_trader_request(request) }
-            EventBody::ExchangeReply(reply) => { self.handle_exchange_reply(reply) }
-            EventBody::SubscriptionUpdate(update) => { self.handle_subscription_update(update) }
+            EventBody::ExchangeReply(reply, exchange_ts) => { self.handle_exchange_reply(reply, exchange_ts) }
+            EventBody::SubscriptionUpdate(update, exchange_ts) => { self.handle_subscription_update(update, exchange_ts) }
             EventBody::SubscriptionSchedule(subscription_type) => { self.handle_subscription_schedule(subscription_type) }
             EventBody::TraderWakeUp => { self.handle_trader_wakeup() }
         }

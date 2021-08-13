@@ -6,10 +6,10 @@ use derive_more::{Add, AddAssign, Sub, SubAssign, Sum};
 
 use crate::utils::ExpectWith;
 
-#[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
 pub struct Price(pub u64);
 
-#[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy)]
+#[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
 pub struct OrderID(pub u64);
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sum, Sub, AddAssign, SubAssign)]

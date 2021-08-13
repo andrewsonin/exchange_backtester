@@ -16,7 +16,7 @@ pub mod prelude {
     pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
     pub use crate::history::{parser::{HistoryParser, interface::EventProcessor}, types::*};
     pub use crate::input;
-    pub use crate::input::{cli::ArgumentParser, cli::Clap, inline::StaticInput, InputInterface};
+    pub use crate::input::{cli::{ArgumentParser, Clap}, inline::StaticInput, InputInterface};
     pub use crate::message::{
         CancellationReason,
         DiscardingReason,
@@ -24,6 +24,7 @@ pub mod prelude {
         InabilityToCancelReason,
         TraderRequest,
     };
+    pub use crate::order::*;
     pub use crate::trader::{
         examples,
         subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, SubscriptionConfig, TradeInfo},

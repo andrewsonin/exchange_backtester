@@ -36,8 +36,8 @@ pub(crate) struct Event {
 pub(crate) enum EventBody {
     HistoryEvent(HistoryEventBody),
     TraderRequest(TraderRequest),
-    ExchangeReply(ExchangeReply),
-    SubscriptionUpdate(SubscriptionUpdate),
+    ExchangeReply(ExchangeReply, Timestamp),
+    SubscriptionUpdate(SubscriptionUpdate, Timestamp),
     SubscriptionSchedule(SubscriptionSchedule),
     TraderWakeUp,
 }
@@ -64,12 +64,12 @@ impl EventQueue {
 
     pub(crate) fn schedule_reply_for_trader(&mut self,
                                             reply: ExchangeReply,
-                                            current_time: Timestamp,
+                                            exchange_ts: Timestamp,
                                             trader: &mut dyn Trader) {
         self.push(
             Event {
-                timestamp: current_time + Duration::nanoseconds(trader.exchange_to_trader_latency() as i64),
-                body: EventBody::ExchangeReply(reply),
+                timestamp: exchange_ts + Duration::nanoseconds(trader.exchange_to_trader_latency() as i64),
+                body: EventBody::ExchangeReply(reply, exchange_ts),
             }
         )
     }

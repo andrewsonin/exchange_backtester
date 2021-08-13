@@ -13,15 +13,15 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
           TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor
 {
-    pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate) {
-        let current_time = self.current_time;
+    pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: Timestamp) {
+        let deliver_ts = self.current_time;
 
         let trader_reactions = match update {
             SubscriptionUpdate::OrderBook(ob_snapshot) => {
-                self.trader.handle_order_book_snapshot(current_time, ob_snapshot)
+                self.trader.handle_order_book_snapshot(exchange_ts, deliver_ts, ob_snapshot)
             }
             SubscriptionUpdate::TradeInfo(trade_info) => {
-                self.trader.handle_trade_info_update(current_time, trade_info)
+                self.trader.handle_trade_info_update(exchange_ts, deliver_ts, trade_info)
             }
         };
         let trader = &mut self.trader;
@@ -30,7 +30,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                 .into_iter()
                 .map(
                     |request| Event {
-                        timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                        timestamp: deliver_ts + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )

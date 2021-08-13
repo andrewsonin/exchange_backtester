@@ -47,7 +47,8 @@ of `rustc`.
    impl HandleSubscriptionUpdates for CustomTrader
    {
        fn handle_order_book_snapshot(&mut self,
-                                     timestamp: Timestamp,
+                                     exchange_ts: Timestamp,
+                                     deliver_ts: Timestamp,
                                      ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
        {
            let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
@@ -58,17 +59,20 @@ of `rustc`.
                (Some((bid_price, _)), _) => { bid_price.to_f64(self.price_step) }
                (_, Some((ask_price, _))) => { ask_price.to_f64(self.price_step) }
                _ => {
-                   eprintln!("Timestamp: {}. Order book is empty", timestamp);
+                   eprintln!("Timestamp: {}. Order book is empty", exchange_ts);
                    return vec![];
                }
            };
-           println!("{},{}", timestamp, mid_price);
+           println!("{},{}", exchange_ts, mid_price);
            vec![]
        }
-       fn handle_trade_info_update(&mut self, _: Timestamp, _: Option<TradeInfo>) -> Vec<TraderRequest> {
+       fn handle_trade_info_update(&mut self,
+                                   exchange_ts: Timestamp,
+                                   deliver_ts: Timestamp,
+                                   trade_info: Option<TradeInfo>) -> Vec<TraderRequest> {
            vec![]
        }
-       fn handle_wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> {
+       fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> {
            vec![]
        }
    }
@@ -76,7 +80,10 @@ of `rustc`.
    impl const Trader for CustomTrader {
        fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
        fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
-       fn handle_exchange_reply(&mut self, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
+       fn handle_exchange_reply(&mut self,
+                                exchange_ts: Timestamp,
+                                deliver_ts: Timestamp,
+                                reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
        fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
    }
    
@@ -273,8 +280,11 @@ const PRICE_STEP: f64 = 0.0025;
 struct CustomTrader;
 
 impl HandleSubscriptionUpdates for CustomTrader {
-    fn handle_order_book_snapshot(&mut self, timestamp: Timestamp, ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
-    {
+   fn handle_order_book_snapshot(&mut self,
+                                 exchange_ts: Timestamp,
+                                 deliver_ts: Timestamp,
+                                 ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
+   {
         let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
         {
             (Some((bid_price, _)), Some((ask_price, _))) => {
@@ -284,13 +294,16 @@ impl HandleSubscriptionUpdates for CustomTrader {
             (_, Some((ask_price, _))) => { ask_price.to_f64(PRICE_STEP) }
             _ => { return vec![]; }
         };
-        println!("{},{}", timestamp, mid_price);
+        println!("{},{}", exchange_ts, mid_price);
         vec![]
     }
-    fn handle_trade_info_update(&mut self, _: Timestamp, _: Option<TradeInfo>) -> Vec<TraderRequest> {
+   fn handle_trade_info_update(&mut self,
+                               exchange_ts: Timestamp,
+                               deliver_ts: Timestamp,
+                               trade_info: Option<TradeInfo>) -> Vec<TraderRequest> {
         vec![]
     }
-    fn handle_wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> {
+    fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> {
         vec![]
     }
 }
@@ -298,7 +311,10 @@ impl HandleSubscriptionUpdates for CustomTrader {
 impl const Trader for CustomTrader {
     fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
     fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
-    fn handle_exchange_reply(&mut self, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
+    fn handle_exchange_reply(&mut self,
+                             exchange_ts: Timestamp,
+                             deliver_ts: Timestamp,
+                             reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
     fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
 }
 
@@ -341,12 +357,12 @@ const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
 
 fn main() {
     let mut history = HistoryHolder::default();
-    history.add_prl("2020-03-03 12:22:22.31",  3,  Direction::Buy, 12.0025, 1);
+    history.add_prl("2020-03-03 12:22:22.31",  3, Direction::Buy,  12.0025, 1);
     history.add_prl("2020-03-03 14:11:26.33", 22, Direction::Sell, 12.0075, 2);
     history.add_trd("2020-03-03 16:11:26.33",  2, Direction::Sell);
-    history.add_prl("2020-03-03 16:11:26.33",  1,  Direction::Buy, 12.0025, 1);
+    history.add_prl("2020-03-03 16:11:26.33",  1, Direction::Buy,  12.0025, 1);
     history.add_trd("2020-03-03 18:24:00",     1, Direction::Sell);
-    history.add_prl("2020-03-03 18:24:00",     0,  Direction::Buy, 12.0025, 1);
+    history.add_prl("2020-03-03 18:24:00",     0, Direction::Buy,  12.0025, 1);
 
     let mut trader = CustomTrader;
     let mut exchange = ExchangeBuilder::new::<false, SUBSCRIPTIONS>(

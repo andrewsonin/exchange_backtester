@@ -12,12 +12,14 @@ pub struct SubscriptionConfig {
 
 pub trait HandleSubscriptionUpdates {
     fn handle_order_book_snapshot(&mut self,
-                                  timestamp: Timestamp,
+                                  exchange_ts: Timestamp,
+                                  deliver_ts: Timestamp,
                                   ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>;
     fn handle_trade_info_update(&mut self,
-                                timestamp: Timestamp,
+                                exchange_ts: Timestamp,
+                                deliver_ts: Timestamp,
                                 trade_info: Option<TradeInfo>) -> Vec<TraderRequest>;
-    fn handle_wakeup(&mut self, timestamp: Timestamp) -> Vec<TraderRequest>;
+    fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest>;
 }
 
 impl SubscriptionConfig {

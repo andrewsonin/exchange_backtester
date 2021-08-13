@@ -1,6 +1,6 @@
 # Exchange backtester
 
-Framework that allows you to replay exchange trading history for one ticker and test your trading strategies.
+Framework that allows you to replay the exchange trading history for a single ticker and test your trading strategies.
 
 Written on the pure Rust, it uses some experimental language features such as constant generics. This is necessary in
 order to instantiate (or not instantiate) machine code as efficiently as possible and calculate everything that is

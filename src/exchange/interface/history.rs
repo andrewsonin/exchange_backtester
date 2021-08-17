@@ -13,22 +13,22 @@ struct TRDummyOrder {
 }
 
 impl const Order for TRDummyOrder {
-    fn get_order_id(&self) -> OrderID { panic!("get_order_id could not be called for TrdDummyOrder") }
+    fn get_order_id(&self) -> OrderID { unimplemented!() }
     fn get_order_size(&self) -> Size { self.size }
     fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
     fn get_order_direction(&self) -> Direction { self.direction }
 }
 
-impl<T, EP,
+impl<
+    T: Trader,
+    E: EventProcessor,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool
 >
-Exchange<'_, T, EP, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
-    where T: Trader,
-          EP: EventProcessor
+Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate)
     fn handle_history_event(&mut self, event: HistoryEventBody)

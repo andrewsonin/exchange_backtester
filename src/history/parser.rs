@@ -63,7 +63,7 @@ impl<T: InputInterface> EventProcessor for HistoryParser<'_, T>
                             event: HistoryEventBody::PRL(*prl_size, *prl_dir, *prl_price, *prl_id),
                         };
                         if res.timestamp < self.last_time {
-                            panic!("History file entries are not stored in ascending order by time.")
+                            panic!("History file entries are not stored in ascending order by time")
                         }
                         self.last_time = res.timestamp;
                         self.last_prl = self.prl_parser.next();
@@ -72,7 +72,7 @@ impl<T: InputInterface> EventProcessor for HistoryParser<'_, T>
                     (Ordering::Greater, _) | (Ordering::Equal, false) => {
                         let res = HistoryEvent { timestamp: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
                         if res.timestamp < self.last_time {
-                            panic!("History file entries are not stored in ascending order by time.")
+                            panic!("History file entries are not stored in ascending order by time")
                         }
                         self.last_time = res.timestamp;
                         self.last_trd = self.trd_parser.next();
@@ -83,7 +83,7 @@ impl<T: InputInterface> EventProcessor for HistoryParser<'_, T>
             (Some((trd_ts, trd_size, trd_dir, _)), None) => {
                 let res = HistoryEvent { timestamp: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
                 if res.timestamp < self.last_time {
-                    panic!("History file entries are not stored in ascending order by time.")
+                    panic!("History file entries are not stored in ascending order by time")
                 }
                 self.last_time = res.timestamp;
                 self.last_trd = self.trd_parser.next();
@@ -95,7 +95,7 @@ impl<T: InputInterface> EventProcessor for HistoryParser<'_, T>
                     event: HistoryEventBody::PRL(*prl_size, *prl_dir, *prl_price, *prl_id),
                 };
                 if res.timestamp < self.last_time {
-                    panic!("History file entries are not stored in ascending order by time.")
+                    panic!("History file entries are not stored in ascending order by time")
                 }
                 self.last_time = res.timestamp;
                 self.last_prl = self.prl_parser.next();

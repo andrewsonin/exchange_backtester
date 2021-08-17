@@ -17,8 +17,8 @@ impl HandleSubscriptionUpdates for VoidTrader {
 }
 
 impl const Trader for VoidTrader {
-    fn exchange_to_trader_latency(&mut self, _: &mut StdRng, _: Timestamp) -> u64 { 0 }
-    fn trader_to_exchange_latency(&mut self, _: &mut StdRng, _: Timestamp) -> u64 { 0 }
+    fn exchange_to_trader_latency(_: &mut StdRng, _: Timestamp) -> u64 { 0 }
+    fn trader_to_exchange_latency(_: &mut StdRng, _: Timestamp) -> u64 { 0 }
     fn handle_exchange_reply(&mut self, _: Timestamp, _: Timestamp, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
     fn set_new_trading_period(&mut self) {}
 }

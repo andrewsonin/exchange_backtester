@@ -12,18 +12,18 @@ pub(crate) mod types;
 pub(crate) mod trades;
 
 pub struct Exchange<
-    'a, T, EP,
+    'a,
+    T: Trader,
+    E: EventProcessor,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool,
 >
-    where T: Trader,
-          EP: EventProcessor
 {
     event_queue: EventQueue,
-    event_processor: EP,
+    event_processor: E,
     history_order_ids: HashSet<OrderID>,
 
     bids: LinkedList<OrderBookLevel>,

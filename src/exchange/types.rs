@@ -64,14 +64,13 @@ impl EventQueue {
         }
     }
 
-    pub(crate) fn schedule_reply_for_trader(&mut self,
-                                            reply: ExchangeReply,
-                                            exchange_ts: Timestamp,
-                                            rng: &mut StdRng,
-                                            trader: &mut dyn Trader) {
+    pub(crate) fn schedule_reply_for_trader<T: Trader>(&mut self,
+                                                       reply: ExchangeReply,
+                                                       exchange_ts: Timestamp,
+                                                       rng: &mut StdRng) {
         self.push(
             Event {
-                timestamp: exchange_ts + Duration::nanoseconds(trader.exchange_to_trader_latency(rng, exchange_ts) as i64),
+                timestamp: exchange_ts + Duration::nanoseconds(T::exchange_to_trader_latency(rng, exchange_ts) as i64),
                 body: EventBody::ExchangeReply(reply, exchange_ts),
             }
         )

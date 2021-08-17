@@ -16,7 +16,7 @@ use crate::message::{
     TraderRequest,
 };
 use crate::order::{MarketOrder, Order, PricedOrder};
-use crate::trader::{subscriptions::{OrderBookSnapshot, SubscriptionConfig}, Trader};
+use crate::trader::{subscriptions::OrderBookSnapshot, Trader};
 use crate::types::{Direction, Duration, Size, Timestamp};
 use crate::utils::ExpectWith;
 
@@ -28,10 +28,15 @@ pub(crate) enum AggressiveOrderType {
     HistoryIntersectingLimitOrder,
 }
 
-impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
+impl<T, EP,
+    const DEBUG: bool,
+    const TRD_UPDATES_OB: bool,
+    const OB_SUBSCRIPTION: bool,
+    const TRD_SUBSCRIPTION: bool,
+    const WAKEUP_SUBSCRIPTION: bool
+>
+Exchange<'_, T, EP, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
     where T: Trader,
-          TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor
 {
     pub(crate)
@@ -47,7 +52,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
             .chain(self.trader_pending_limit_orders.keys().map(|id| *id))
         {
             let reply = OrderCancelled(id, CancellationReason::ExchangeClosed);
-            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+            self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
         }
         self.trader_pending_market_orders.clear();
         self.trader_pending_limit_orders.clear();
@@ -91,23 +96,23 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     Ordering::Less => {
                         // (OrderExecuted, OrderPartiallyExecuted)
                         let exec_size = order.get_order_size();
-                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        if TRD_SUBSCRIPTION {
                             self.executed_trades.push((price, exec_size, order.get_order_direction()))
                         }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
                                 let reply = OrderExecuted(order.get_order_id(), exec_size, price);
-                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader)
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader)
                             }
                             TraderIntersectingLimitOrder => {
                                 let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
-                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader)
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader)
                             }
                             _ => {}
                         }
                         if limit_order.from == OrderOrigin::Trader {
                             let reply = OrderPartiallyExecuted(limit_order.order_id, exec_size, price);
-                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                             limit_order.size -= exec_size
                         } else if Self::react_with_history_limit_orders::<ORDER_TYPE>() {
                             limit_order.size -= exec_size
@@ -117,23 +122,23 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     Ordering::Equal => {
                         // (OrderExecuted, OrderExecuted)
                         let exec_size = order.get_order_size();
-                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        if TRD_SUBSCRIPTION {
                             self.executed_trades.push((price, exec_size, order.get_order_direction()))
                         }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
                                 let reply = OrderExecuted(order.get_order_id(), exec_size, price);
-                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                             }
                             TraderIntersectingLimitOrder => {
                                 let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
-                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                             }
                             _ => {}
                         }
                         if limit_order.from == OrderOrigin::Trader {
                             let reply = OrderExecuted(limit_order.order_id, exec_size, price);
-                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                             self.trader_pending_limit_orders.remove(&limit_order.order_id);
                             level_cursor.remove_current();
                             if level.queue.is_empty() {
@@ -151,12 +156,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         // (OrderPartiallyExecuted, OrderExecuted)
                         let exec_size = limit_order.size;
                         *order.mut_order_size() -= exec_size;
-                        if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                        if TRD_SUBSCRIPTION {
                             self.executed_trades.push((price, exec_size, order.get_order_direction()))
                         }
                         if Self::is_trader_aggressive_order::<ORDER_TYPE>() {
                             let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
-                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                            self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                         }
                         match limit_order.from {
                             OrderOrigin::History => {
@@ -186,7 +191,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                             }
                             OrderOrigin::Trader => {
                                 let reply = OrderExecuted(limit_order.order_id, exec_size, price);
-                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                                self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                                 self.trader_pending_limit_orders.remove(&limit_order.order_id);
                                 level_cursor.remove_current();
                                 match level_cursor.current() {
@@ -248,12 +253,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     let exec_size = order.get_order_size();
                     *pending.mut_order_size() -= exec_size;
                     let reply = OrderPartiallyExecuted(pending.get_order_id(), exec_size, price);
-                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     if COME_FROM == OrderOrigin::Trader {
                         let reply = OrderExecuted(order.get_order_id(), exec_size, price);
-                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     }
-                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                    if TRD_SUBSCRIPTION {
                         self.executed_trades.push((price, exec_size, pending.get_order_direction()))
                     }
                     return;
@@ -262,12 +267,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     // (OrderExecuted, OrderExecuted)
                     let exec_size = order.get_order_size();
                     let reply = OrderExecuted(pending.get_order_id(), exec_size, price);
-                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     if COME_FROM == OrderOrigin::Trader {
                         let reply = OrderExecuted(order.get_order_id(), exec_size, price);
-                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     }
-                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                    if TRD_SUBSCRIPTION {
                         self.executed_trades.push((price, exec_size, pending.get_order_direction()))
                     }
                     cursor.remove_current();
@@ -278,12 +283,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     let exec_size = pending.get_order_size();
                     *order.mut_order_size() -= exec_size;
                     let reply = OrderExecuted(pending.get_order_id(), exec_size, price);
-                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                    self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     if COME_FROM == OrderOrigin::Trader {
                         let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
-                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, self.trader);
+                        self.event_queue.schedule_reply_for_trader(reply, self.current_time, &mut self.rng, self.trader);
                     }
-                    if SUBSCRIPTIONS.trade_info_interval_ns.is_some() {
+                    if TRD_SUBSCRIPTION {
                         self.executed_trades.push((price, exec_size, pending.get_order_direction()))
                     }
                     cursor.remove_current();
@@ -386,8 +391,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
 
     pub(crate) fn set_new_trading_period(&mut self)
     {
-        if let Some((_, freq)) = SUBSCRIPTIONS.ob_depth_and_interval_ns {
-            let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+        if OB_SUBSCRIPTION {
+            let (_, ns_gen) = self.ob_depth_and_interval_ns;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -397,8 +403,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                 )
             }
         }
-        if let Some(freq) = SUBSCRIPTIONS.trade_info_interval_ns {
-            let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+        if TRD_SUBSCRIPTION {
+            let ns_gen = self.trade_info_interval_ns;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -408,8 +415,9 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                 )
             }
         }
-        if let Some(freq) = SUBSCRIPTIONS.wakeup {
-            let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+        if WAKEUP_SUBSCRIPTION {
+            let ns_gen = self.wakeup;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -425,7 +433,8 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     pub(crate) fn handle_subscription_schedule(&mut self, subscription_type: SubscriptionSchedule) {
         match subscription_type {
             SubscriptionSchedule::OrderBook => {
-                if let Some((depth, freq)) = SUBSCRIPTIONS.ob_depth_and_interval_ns {
+                if OB_SUBSCRIPTION {
+                    let (depth, ns_gen) = self.ob_depth_and_interval_ns;
                     let get_snapshot = |ob_side: &LinkedList<OrderBookLevel>| {
                         ob_side.iter()
                             .enumerate()
@@ -435,7 +444,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     };
                     self.event_queue.push(
                         Event {
-                            timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency() as i64),
+                            timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency(&mut self.rng, self.current_time) as i64),
                             body: EventBody::SubscriptionUpdate(
                                 SubscriptionUpdate::OrderBook(
                                     OrderBookSnapshot {
@@ -447,7 +456,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                             ),
                         }
                     );
-                    let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+                    let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(
                             Event {
@@ -461,10 +470,11 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                 }
             }
             SubscriptionSchedule::TradeInfo => {
-                if let Some(freq) = SUBSCRIPTIONS.trade_info_interval_ns {
+                if TRD_SUBSCRIPTION {
+                    let ns_gen = self.trade_info_interval_ns;
                     self.event_queue.push(
                         Event {
-                            timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency() as i64),
+                            timestamp: self.current_time + Duration::nanoseconds(self.trader.exchange_to_trader_latency(&mut self.rng, self.current_time) as i64),
                             body: EventBody::SubscriptionUpdate(
                                 SubscriptionUpdate::TradeInfo(
                                     self.executed_trades.get_trade_info()
@@ -474,7 +484,7 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                         }
                     );
                     self.executed_trades.clear();
-                    let next_time = self.current_time + Duration::nanoseconds(freq.get() as i64);
+                    let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(
                             Event {
@@ -494,11 +504,12 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
         let deliver_ts = self.current_time;
         let trader_reactions = self.trader.handle_exchange_reply(exchange_ts, deliver_ts, reply);
         let trader = &mut self.trader;
+        let rng = &mut self.rng;
         self.event_queue.extend(
             trader_reactions.into_iter()
                 .map(
                     |request| Event {
-                        timestamp: deliver_ts + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                        timestamp: deliver_ts + Duration::nanoseconds(trader.trader_to_exchange_latency(rng, deliver_ts) as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )
@@ -512,7 +523,10 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     self.submit_limit_order(order)
                 } else {
                     self.event_queue.schedule_reply_for_trader(
-                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize), self.current_time, self.trader,
+                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize),
+                        self.current_time,
+                        &mut self.rng,
+                        self.trader,
                     )
                 }
             }
@@ -521,7 +535,10 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
                     self.submit_market_order(order)
                 } else {
                     self.event_queue.schedule_reply_for_trader(
-                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize), self.current_time, self.trader,
+                        OrderPlacementDiscarded(order.get_order_id(), ZeroSize),
+                        self.current_time,
+                        &mut self.rng,
+                        self.trader,
                     )
                 }
             }
@@ -531,20 +548,22 @@ Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
     }
 
     pub(crate) fn handle_trader_wakeup(&mut self) {
-        if let Some(freq) = SUBSCRIPTIONS.wakeup {
+        if WAKEUP_SUBSCRIPTION {
+            let ns_gen = self.wakeup;
             let current_time = self.current_time;
             let trader_reactions = self.trader.handle_wakeup(current_time);
             let trader = &mut self.trader;
+            let rng = &mut self.rng;
             self.event_queue.extend(
                 trader_reactions.into_iter()
                     .map(
                         |request| Event {
-                            timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency() as i64),
+                            timestamp: current_time + Duration::nanoseconds(trader.trader_to_exchange_latency(rng, current_time) as i64),
                             body: EventBody::TraderRequest(request),
                         }
                     )
             );
-            let next_wakeup_time = current_time + Duration::nanoseconds(freq.get() as i64);
+            let next_wakeup_time = current_time + Duration::nanoseconds(ns_gen(rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_wakeup_time) {
                 self.event_queue.push(
                     Event {

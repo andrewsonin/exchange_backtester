@@ -4,25 +4,30 @@ use crate::history::{
     types::{HistoryEventBody, OrderOrigin},
 };
 use crate::order::{LimitOrder, Order};
-use crate::trader::{subscriptions::SubscriptionConfig, Trader};
-use crate::types::{Direction, OrderID, Price, Size, Timestamp};
+use crate::trader::Trader;
+use crate::types::{Direction, OrderID, Price, Size};
 
 struct TRDummyOrder {
     size: Size,
     direction: Direction,
 }
 
-impl Order for TRDummyOrder {
-    fn get_order_id(&self) -> OrderID { unreachable!("get_order_id could not be called for TrdDummyOrder") }
+impl const Order for TRDummyOrder {
+    fn get_order_id(&self) -> OrderID { panic!("get_order_id could not be called for TrdDummyOrder") }
     fn get_order_size(&self) -> Size { self.size }
     fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
     fn get_order_direction(&self) -> Direction { self.direction }
 }
 
-impl<T, TTC, EP, const DEBUG: bool, const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>
-Exchange<'_, T, TTC, EP, DEBUG, TRD_UPDATES_OB, SUBSCRIPTIONS>
+impl<T, EP,
+    const DEBUG: bool,
+    const TRD_UPDATES_OB: bool,
+    const OB_SUBSCRIPTION: bool,
+    const TRD_SUBSCRIPTION: bool,
+    const WAKEUP_SUBSCRIPTION: bool
+>
+Exchange<'_, T, EP, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
     where T: Trader,
-          TTC: Fn(Timestamp) -> bool,
           EP: EventProcessor
 {
     pub(crate)

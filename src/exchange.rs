@@ -2,22 +2,24 @@ use std::collections::{HashMap, HashSet, LinkedList};
 
 use crate::exchange::{trades::history::TradesHistory, types::{EventQueue, OrderBookLevel}};
 use crate::history::parser::EventProcessor;
+use crate::lags::NanoSecondGenerator;
 use crate::order::MarketOrder;
-use crate::trader::{subscriptions::SubscriptionConfig, Trader};
-use crate::types::{Direction, OrderID, Price, Timestamp};
+use crate::trader::Trader;
+use crate::types::{Direction, OrderID, Price, StdRng, Timestamp};
 
 pub(crate) mod interface;
 pub(crate) mod types;
 pub(crate) mod trades;
 
 pub struct Exchange<
-    'a, T, TradingTimeCriterion, EP,
+    'a, T, EP,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
-    const SUBSCRIPTIONS: SubscriptionConfig
+    const OB_SUBSCRIPTION: bool,
+    const TRD_SUBSCRIPTION: bool,
+    const WAKEUP_SUBSCRIPTION: bool,
 >
     where T: Trader,
-          TradingTimeCriterion: Fn(Timestamp) -> bool,
           EP: EventProcessor
 {
     event_queue: EventQueue,
@@ -36,5 +38,11 @@ pub struct Exchange<
 
     current_time: Timestamp,
     exchange_closed: bool,
-    is_trading_time: TradingTimeCriterion,
+    is_trading_time: fn(Timestamp) -> bool,
+    rng: StdRng,
+
+    // Subscriptions
+    ob_depth_and_interval_ns: (usize, NanoSecondGenerator),
+    trade_info_interval_ns: NanoSecondGenerator,
+    wakeup: NanoSecondGenerator,
 }

@@ -1,8 +1,9 @@
 pub use std::num::{NonZeroU64, NonZeroUsize};
 use std::str::FromStr;
 
-pub use chrono::{Duration, NaiveDateTime as Timestamp, Timelike};
+pub use chrono::{Duration, NaiveDate as Date, NaiveDateTime as Timestamp, NaiveTime as Time, Timelike};
 use derive_more::{Add, AddAssign, Sub, SubAssign, Sum};
+pub use rand::{Rng, rngs::StdRng, SeedableRng};
 
 use crate::utils::ExpectWith;
 

@@ -1,4 +1,4 @@
-#![feature(const_generics, const_trait_impl, const_fn_trait_bound, const_mut_refs, const_option, linked_list_cursors)]
+#![feature(const_fn_fn_ptr_basics, const_panic, const_generics, const_trait_impl, const_fn_trait_bound, const_mut_refs, const_option, linked_list_cursors)]
 
 mod utils;
 mod types;
@@ -9,14 +9,14 @@ mod history;
 pub mod trader;
 pub mod message;
 pub mod input;
-pub mod constants;
+pub mod lags;
 
 pub mod prelude {
-    pub use crate::constants;
     pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
     pub use crate::history::{parser::{HistoryParser, interface::EventProcessor}, types::*};
     pub use crate::input;
     pub use crate::input::{cli::{ArgumentParser, Clap}, inline::StaticInput, InputInterface};
+    pub use crate::lags;
     pub use crate::message::{
         CancellationReason,
         DiscardingReason,
@@ -27,10 +27,11 @@ pub mod prelude {
     pub use crate::order::*;
     pub use crate::trader::{
         examples,
-        subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, SubscriptionConfig, TradeInfo},
+        subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo},
         Trader,
     };
     pub use crate::types::{
+        Date,
         Direction,
         Duration,
         NonZeroU64,
@@ -38,6 +39,7 @@ pub mod prelude {
         OrderID,
         Price,
         Size,
+        Time,
         Timelike,
         Timestamp,
     };
@@ -46,11 +48,11 @@ pub mod prelude {
 
 #[cfg(test)]
 mod integration {
+    use std::cmp::Ordering;
     use std::fs::File;
     use std::io::Write;
     use std::path::Path;
 
-    use crate::input::default::DATETIME_FORMAT;
     use crate::prelude::*;
 
     const SOURCE_DIR: &str = env!("CARGO_MANIFEST_DIR");
@@ -88,21 +90,24 @@ mod integration {
         let history_parser = HistoryParser::new(&input);
         let mut trader = examples::VoidTrader;
 
-        let end_of_trades = Timestamp::parse_from_str("2019-03-04 12:11:12", DATETIME_FORMAT)
-            .unwrap();
         let is_trading_time = |timestamp: Timestamp| {
-            timestamp < end_of_trades
+            match timestamp.date().cmp(&Date::from_ymd(2019, 3, 4)) {
+                Ordering::Less => { true }
+                Ordering::Equal => { timestamp.time() < Time::from_hms(12, 11, 12) }
+                Ordering::Greater => { false }
+            }
         };
-        const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-            .ob_level_subscription_depth(constants::ONE_SECOND, 10)
-            .trade_info_subscription(constants::ONE_SECOND)
-            .with_periodic_wakeup(constants::ONE_MINUTE);
 
-        let mut exchange = ExchangeBuilder::new_debug::<false, SUBSCRIPTIONS>(
+        let exchange = ExchangeBuilder::new_debug::<false>(
             history_parser,
             &mut trader,
             is_trading_time,
         );
+        let mut exchange = exchange
+            .ob_level_subscription_depth(lags::constant::one_second, 10)
+            .trade_info_subscription(lags::constant::one_second)
+            .with_periodic_wakeup(lags::constant::one_minute);
+
         exchange.run_trades()
     }
 }

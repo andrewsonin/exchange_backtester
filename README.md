@@ -94,9 +94,9 @@ of `rustc`.
        let mut trader = CustomTrader { price_step: input.get_price_step() };
    
        const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-           .ob_level_subscription_depth(constants::ONE_HOUR, 3)
-           .trade_info_subscription(constants::ONE_SECOND)
-           .with_periodic_wakeup(constants::ONE_MINUTE);
+           .ob_level_subscription_depth(constants::one_hour, 3)
+           .trade_info_subscription(constants::one_second)
+           .with_periodic_wakeup(constants::one_minute);
    
        let is_trading_time = |timestamp: Timestamp| {
            match timestamp.hour() {
@@ -353,7 +353,7 @@ fn is_trading_time(timestamp: Timestamp) -> bool {
 }
 
 const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-    .ob_level_subscription_depth(constants::ONE_HOUR, 1);
+    .ob_level_subscription_depth(constants::one_hour, 1);
 
 fn main() {
     let mut history = HistoryHolder::default();

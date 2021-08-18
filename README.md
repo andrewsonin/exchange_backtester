@@ -430,13 +430,13 @@ The exchange notifies the trader about the events happened in two ways.
    they are:
 
    ```rust
-   fn ob_level_subscription_depth<G: NanoSecondGenerator>(self, ns_gen: G, depth: usize);
+   fn ob_level_subscription_depth<G: NanoSecondGenerator>(self, ns_gen: G, depth: usize) -> Exchange;
    
-   fn ob_level_subscription_full<G: NanoSecondGenerator>(self, ns_gen: G);
+   fn ob_level_subscription_full<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange;
    
-   fn trade_info_subscription<G: NanoSecondGenerator>(self, ns_gen: G);
+   fn trade_info_subscription<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange;
    
-   fn with_periodic_wakeup<G: NanoSecondGenerator>(self, ns_gen: G);
+   fn with_periodic_wakeup<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange;
    ```
     - `ob_level_subscription_depth` subscribe the trader to the order book snapshots which depth is limited to
       the `depth` parameter. Information comes at intervals, the duration of which is determined by the `ns_gen` structure.

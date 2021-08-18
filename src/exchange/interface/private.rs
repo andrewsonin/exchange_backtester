@@ -4,6 +4,7 @@ use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
 use crate::history::{parser::EventProcessor, types::OrderOrigin};
+use crate::lags::interface::NanoSecondGenerator;
 use crate::message::{
     CancellationReason,
     DiscardingReason::ZeroSize,
@@ -31,31 +32,35 @@ pub(crate) enum AggressiveOrderType {
 impl<
     T: Trader,
     E: EventProcessor,
+    ObLagGen: NanoSecondGenerator,
+    TrdLagGen: NanoSecondGenerator,
+    WkpLagGen: NanoSecondGenerator,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool
 >
-Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
+Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
-    pub(crate)
-    fn cleanup(&mut self) {
+    fn cleanup<const END_OF_TRADES: bool>(&mut self, ts: Timestamp) {
         self.history_order_ids.clear();
         self.bids.clear();
         self.asks.clear();
-        self.trader_submitted_orders.clear();
         self.executed_trades.clear();
 
-        for id in self.trader_pending_market_orders.iter()
-            .map(|order| order.get_order_id())
-            .chain(self.trader_pending_limit_orders.keys().map(|id| *id))
-        {
-            let reply = OrderCancelled(id, CancellationReason::ExchangeClosed);
-            self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
+        if END_OF_TRADES {
+            self.trader_submitted_orders.clear();
+            for id in self.trader_pending_market_orders.iter()
+                .map(|order| order.get_order_id())
+                .chain(self.trader_pending_limit_orders.keys().map(|id| *id))
+            {
+                let reply = OrderCancelled(id, CancellationReason::ExchangeClosed);
+                self.event_queue.schedule_reply_for_trader::<T>(reply, ts, &mut self.rng);
+            }
+            self.trader_pending_market_orders.clear();
+            self.trader_pending_limit_orders.clear();
         }
-        self.trader_pending_market_orders.clear();
-        self.trader_pending_limit_orders.clear();
     }
 
     const fn react_with_history_limit_orders<const ORDER_TYPE: AggressiveOrderType>() -> bool {
@@ -389,11 +394,11 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
         (self.is_trading_time)(self.current_time)
     }
 
-    pub(crate) fn set_new_trading_period(&mut self)
+    fn set_new_trading_period(&mut self)
     {
         if OB_SUBSCRIPTION {
-            let (_, ns_gen) = self.ob_depth_and_interval_ns;
-            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
+            let (_, ns_gen) = &mut self.ob_depth_and_interval_ns;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -404,8 +409,8 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
             }
         }
         if TRD_SUBSCRIPTION {
-            let ns_gen = self.trade_info_interval_ns;
-            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
+            let ns_gen = &mut self.trade_info_interval_ns;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -416,8 +421,8 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
             }
         }
         if WAKEUP_SUBSCRIPTION {
-            let ns_gen = self.wakeup;
-            let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
+            let ns_gen = &mut self.wakeup;
+            let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_time) {
                 self.event_queue.push(
                     Event {
@@ -427,18 +432,18 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
                 )
             }
         }
-        self.trader.set_new_trading_period();
+        self.trader.set_new_trading_period(self.current_time);
     }
 
-    pub(crate) fn handle_subscription_schedule(&mut self, subscription_type: SubscriptionSchedule) {
+    fn handle_subscription_schedule(&mut self, subscription_type: SubscriptionSchedule) {
         match subscription_type {
             SubscriptionSchedule::OrderBook => {
                 if OB_SUBSCRIPTION {
-                    let (depth, ns_gen) = self.ob_depth_and_interval_ns;
+                    let (depth, ns_gen) = &mut self.ob_depth_and_interval_ns;
                     let get_snapshot = |ob_side: &LinkedList<OrderBookLevel>| {
                         ob_side.iter()
                             .enumerate()
-                            .take_while(|(i, _)| *i != depth)
+                            .take_while(|(i, _)| i != depth)
                             .map(|(_, level)| (level.price, level.get_ob_level_size()))
                             .collect::<Vec<_>>()
                     };
@@ -456,7 +461,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
                             ),
                         }
                     );
-                    let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
+                    let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(
                             Event {
@@ -471,7 +476,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
             }
             SubscriptionSchedule::TradeInfo => {
                 if TRD_SUBSCRIPTION {
-                    let ns_gen = self.trade_info_interval_ns;
+                    let ns_gen = &mut self.trade_info_interval_ns;
                     self.event_queue.push(
                         Event {
                             timestamp: self.current_time + Duration::nanoseconds(T::exchange_to_trader_latency(&mut self.rng, self.current_time) as i64),
@@ -484,7 +489,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
                         }
                     );
                     self.executed_trades.clear();
-                    let next_time = self.current_time + Duration::nanoseconds(ns_gen(&mut self.rng, self.current_time).get() as i64);
+                    let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(
                             Event {
@@ -500,7 +505,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
         }
     }
 
-    pub(crate) fn handle_exchange_reply(&mut self, reply: ExchangeReply, exchange_ts: Timestamp) {
+    fn handle_exchange_reply(&mut self, reply: ExchangeReply, exchange_ts: Timestamp) {
         let deliver_ts = self.current_time;
         let trader_reactions = self.trader.handle_exchange_reply(exchange_ts, deliver_ts, reply);
         let rng = &mut self.rng;
@@ -515,7 +520,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
         )
     }
 
-    pub(crate) fn handle_trader_request(&mut self, request: TraderRequest) {
+    fn handle_trader_request(&mut self, request: TraderRequest) {
         match request {
             PlaceLimitOrder(order) => {
                 if order.get_order_size() != Size(0) {
@@ -544,9 +549,9 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
         }
     }
 
-    pub(crate) fn handle_trader_wakeup(&mut self) {
+    fn handle_trader_wakeup(&mut self) {
         if WAKEUP_SUBSCRIPTION {
-            let ns_gen = self.wakeup;
+            let ns_gen = &mut self.wakeup;
             let current_time = self.current_time;
             let trader_reactions = self.trader.handle_wakeup(current_time);
             let rng = &mut self.rng;
@@ -559,7 +564,7 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
                         }
                     )
             );
-            let next_wakeup_time = current_time + Duration::nanoseconds(ns_gen(rng, self.current_time).get() as i64);
+            let next_wakeup_time = current_time + Duration::nanoseconds(ns_gen.gen_ns(rng, self.current_time).get() as i64);
             if (self.is_trading_time)(next_wakeup_time) {
                 self.event_queue.push(
                     Event {
@@ -575,17 +580,19 @@ Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
 
     pub(crate)
     fn process_next_event(&mut self, event: Event) {
+        let prev_time = self.current_time;
         self.current_time = event.timestamp;
         if self.exchange_closed {
             if self.is_now_trading_time() {
                 if DEBUG {
                     eprintln!("{} :: process_next_event :: CLEANUP", event.timestamp)
                 }
-                self.cleanup();
+                self.cleanup::<false>(prev_time);
                 self.set_new_trading_period();
-                self.exchange_closed = false;
+                self.exchange_closed = false
             }
         } else if !self.is_now_trading_time() {
+            self.cleanup::<true>(prev_time);
             self.exchange_closed = true
         }
         if DEBUG {

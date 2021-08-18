@@ -12,5 +12,5 @@ pub trait Trader: HandleSubscriptionUpdates {
                              exchange_ts: Timestamp,
                              deliver_ts: Timestamp,
                              reply: ExchangeReply) -> Vec<TraderRequest>;
-    fn set_new_trading_period(&mut self);
+    fn set_new_trading_period(&mut self, ts: Timestamp);
 }

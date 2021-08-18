@@ -33,10 +33,10 @@ of `rustc`.
    ```
 3. Implement your custom trading agent. The following is the example of `main.rs` that implements a command line app
    that reads the trading history and prints the middle price of the spread into the standard output every trading hour
-   or prints the message into the standard error in the order book is empty.
+   or prints the message into the standard error in case if the order book is empty.
 
    ```rust
-   #![feature(const_option, const_trait_impl, const_mut_refs)]
+   #![feature(const_mut_refs, const_trait_impl)]
    
    use exchange_backtester::prelude::*;
    
@@ -69,22 +69,20 @@ of `rustc`.
        fn handle_trade_info_update(&mut self,
                                    exchange_ts: Timestamp,
                                    deliver_ts: Timestamp,
-                                   trade_info: Option<TradeInfo>) -> Vec<TraderRequest> {
-           vec![]
-       }
-       fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> {
-           vec![]
-       }
+                                   trade_info: Option<TradeInfo>) -> Vec<TraderRequest> { vec![] }
+       // Called when the time comes for the scheduled periodic trader wakeup
+       fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
    }
    
    impl const Trader for CustomTrader {
-       fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
-       fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
+       fn exchange_to_trader_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
+       fn trader_to_exchange_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
        fn handle_exchange_reply(&mut self,
                                 exchange_ts: Timestamp,
                                 deliver_ts: Timestamp,
                                 reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
-       fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
+       // Called when the new trading day begins
+       fn set_new_trading_period(&mut self, ts: Timestamp) {}
    }
    
    fn main() {
@@ -92,11 +90,6 @@ of `rustc`.
        let history_parser = HistoryParser::new(&input);
    
        let mut trader = CustomTrader { price_step: input.get_price_step() };
-   
-       const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-           .ob_level_subscription_depth(constants::one_hour, 3)
-           .trade_info_subscription(constants::one_second)
-           .with_periodic_wakeup(constants::one_minute);
    
        let is_trading_time = |timestamp: Timestamp| {
            match timestamp.hour() {
@@ -106,11 +99,15 @@ of `rustc`.
            }
        };
    
-       let mut exchange = ExchangeBuilder::new::<false, SUBSCRIPTIONS>(
+       let mut exchange = ExchangeBuilder::new::<false>(
            history_parser,
            &mut trader,
            is_trading_time,
-       );
+       )
+           .ob_level_subscription_depth(lags::constant::ONE_HOUR, 3)
+           .trade_info_subscription(lags::constant::ONE_SECOND)
+           .with_periodic_wakeup(lags::constant::ONE_MINUTE);
+   
        exchange.run_trades()
    }
    ```
@@ -268,7 +265,7 @@ pub struct HistoryEvent
 You can implement your own trading history interface using the following backbone:
 
 ```rust
-#![feature(const_option, const_trait_impl, const_mut_refs, nonzero_ops)]
+#![feature(const_trait_impl, const_mut_refs)]
 
 use std::collections::VecDeque;
 
@@ -285,93 +282,90 @@ impl HandleSubscriptionUpdates for CustomTrader {
                                  deliver_ts: Timestamp,
                                  ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
    {
-        let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
-        {
-            (Some((bid_price, _)), Some((ask_price, _))) => {
-                (bid_price.to_f64(PRICE_STEP) + ask_price.to_f64(PRICE_STEP)) * 0.5
-            }
-            (Some((bid_price, _)), _) => { bid_price.to_f64(PRICE_STEP) }
-            (_, Some((ask_price, _))) => { ask_price.to_f64(PRICE_STEP) }
-            _ => { return vec![]; }
-        };
-        println!("{},{}", exchange_ts, mid_price);
-        vec![]
-    }
+      let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
+      {
+         (Some((bid_price, _)), Some((ask_price, _))) => {
+            (bid_price.to_f64(PRICE_STEP) + ask_price.to_f64(PRICE_STEP)) * 0.5
+         }
+         (Some((bid_price, _)), _) => { bid_price.to_f64(PRICE_STEP) }
+         (_, Some((ask_price, _))) => { ask_price.to_f64(PRICE_STEP) }
+         _ => { return vec![]; }
+      };
+      println!("{},{}", exchange_ts, mid_price);
+      vec![]
+   }
    fn handle_trade_info_update(&mut self,
                                exchange_ts: Timestamp,
                                deliver_ts: Timestamp,
-                               trade_info: Option<TradeInfo>) -> Vec<TraderRequest> {
-        vec![]
-    }
-    fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> {
-        vec![]
-    }
+                               trade_info: Option<TradeInfo>) -> Vec<TraderRequest> { vec![] }
+   // Called when the time comes for the scheduled periodic trader wakeup
+   fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
 }
 
 impl const Trader for CustomTrader {
-    fn exchange_to_trader_latency(&mut self) -> u64 { 0 }
-    fn trader_to_exchange_latency(&mut self) -> u64 { 0 }
-    fn handle_exchange_reply(&mut self,
-                             exchange_ts: Timestamp,
-                             deliver_ts: Timestamp,
-                             reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
-    fn set_new_trading_period(&mut self) {}  // Called when the new trading day begins
+   fn exchange_to_trader_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
+   fn trader_to_exchange_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
+   fn handle_exchange_reply(&mut self,
+                            exchange_ts: Timestamp,
+                            deliver_ts: Timestamp,
+                            reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
+   // Called when the new trading day begins
+   fn set_new_trading_period(&mut self, ts: Timestamp) {}
 }
 
 #[derive(Default)]
 struct HistoryHolder {
-    history: VecDeque<HistoryEvent>,
+   history: VecDeque<HistoryEvent>,
 }
 
 impl HistoryHolder {
-    fn add_prl(&mut self, ts: &str, size: u64, dir: Direction, price: f64, order_id: u64) {
-        self.history.push_back(HistoryEvent {
-            timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
-            event: HistoryEventBody::PRL(Size(size), dir, Price::from_f64(price, PRICE_STEP), OrderID(order_id)),
-        })
-    }
+   fn add_prl(&mut self, ts: &str, size: u64, dir: Direction, price: f64, order_id: u64) {
+      self.history.push_back(HistoryEvent {
+         timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
+         event: HistoryEventBody::PRL(Size(size), dir, Price::from_f64(price, PRICE_STEP), OrderID(order_id)),
+      })
+   }
 
-    fn add_trd(&mut self, ts: &str, size: u64, dir: Direction) {
-        self.history.push_back(HistoryEvent {
-            timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
-            event: HistoryEventBody::TRD(Size(size), dir),
-        })
-    }
+   fn add_trd(&mut self, ts: &str, size: u64, dir: Direction) {
+      self.history.push_back(HistoryEvent {
+         timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
+         event: HistoryEventBody::TRD(Size(size), dir),
+      })
+   }
 }
 
 impl EventProcessor for HistoryHolder {
-    fn yield_next_event(&mut self) -> Option<HistoryEvent> {
-        self.history.pop_front()
-    }
+   fn yield_next_event(&mut self) -> Option<HistoryEvent> {
+      self.history.pop_front()
+   }
 }
 
 fn is_trading_time(timestamp: Timestamp) -> bool {
-    match timestamp.hour() {
-        7..=19 => { true }
-        _ => { false }
-    }
+   match timestamp.hour() {
+      7..=19 => { true }
+      _ => { false }
+   }
 }
 
-const SUBSCRIPTIONS: SubscriptionConfig = SubscriptionConfig::new()
-    .ob_level_subscription_depth(constants::one_hour, 1);
-
 fn main() {
-    let mut history = HistoryHolder::default();
-    history.add_prl("2020-03-03 12:22:22.31",  3, Direction::Buy,  12.0025, 1);
-    history.add_prl("2020-03-03 14:11:26.33", 22, Direction::Sell, 12.0075, 2);
-    history.add_trd("2020-03-03 16:11:26.33",  2, Direction::Sell);
-    history.add_prl("2020-03-03 16:11:26.33",  1, Direction::Buy,  12.0025, 1);
-    history.add_trd("2020-03-03 18:24:00",     1, Direction::Sell);
-    history.add_prl("2020-03-03 18:24:00",     0, Direction::Buy,  12.0025, 1);
+   let mut history = HistoryHolder::default();
+   history.add_prl("2020-03-03 12:22:22.31",  3, Direction::Buy,  12.0025, 1);
+   history.add_prl("2020-03-03 14:11:26.33", 22, Direction::Sell, 12.0075, 2);
+   history.add_trd("2020-03-03 16:11:26.33",  2, Direction::Sell);
+   history.add_prl("2020-03-03 16:11:26.33",  1, Direction::Buy,  12.0025, 1);
+   history.add_trd("2020-03-03 18:24:00",     1, Direction::Sell);
+   history.add_prl("2020-03-03 18:24:00",     0, Direction::Buy,  12.0025, 1);
 
-    let mut trader = CustomTrader;
-    let mut exchange = ExchangeBuilder::new::<false, SUBSCRIPTIONS>(
-        history,
-        &mut trader,
-        is_trading_time,
-    );
-    println!("Timestamp,MidPrice");
-    exchange.run_trades()
+   let mut trader = CustomTrader;
+   let mut exchange = ExchangeBuilder::new::<false>(
+      history,
+      &mut trader,
+      is_trading_time,
+   )
+           .ob_level_subscription_depth(lags::constant::ONE_HOUR, 1);
+
+   println!("Timestamp,MidPrice");
+   exchange.run_trades()
 }
 ```
 
@@ -432,33 +426,41 @@ The exchange notifies the trader about the events happened in two ways.
    }
    ```
 2. By sending subscription updates. This information refers to the state of the market as a whole. Trader can subscribe
-   to this information using `SubscriptionConfig`. This structure should be `const` and pass to the exchange as a second
-   template argument to the special functions `ExchangeBuilder::new` or `ExchangeBuilder::new_debug`
-   . `SubscriptionConfig` could be initialized via chained calls of its methods that set subscription parameters. Here
+   to this information using special chained initialization methods of the `Exchange`. Here
    they are:
 
    ```rust
-   pub const fn ob_level_subscription_depth(mut self, interval_ns: NonZeroU64, depth: usize) -> Self;
+   fn ob_level_subscription_depth<G: NanoSecondGenerator>(self, ns_gen: G, depth: usize);
    
-   pub const fn ob_level_subscription_full(mut self, interval_ns: NonZeroU64) -> Self;
+   fn ob_level_subscription_full<G: NanoSecondGenerator>(self, ns_gen: G);
    
-   pub const fn trade_info_subscription(mut self, interval_ns: NonZeroU64) -> Self;
+   fn trade_info_subscription<G: NanoSecondGenerator>(self, ns_gen: G);
    
-   pub const fn with_periodic_wakeup(mut self, interval_ns: NonZeroU64) -> Self;
+   fn with_periodic_wakeup<G: NanoSecondGenerator>(self, ns_gen: G);
    ```
     - `ob_level_subscription_depth` subscribe the trader to the order book snapshots which depth is limited to
-      the `depth` parameter. They will arrive every `interval_ns` nanoseconds after beginning of the trades.
+      the `depth` parameter. Information comes at intervals, the duration of which is determined by the `ns_gen` structure.
     - `ob_level_subscription_full` does the same, but the depth is not limited.
     - `trade_info_subscription` subscribe the trader to the candles that contain the information of the executed trades
-      in the last `interval_ns` nanoseconds.
+       after the last `trade_info_subscription` call.
     - `with_periodic_wakeup` just ping the trader and allow him to send the list of instances of `TraderRequest`
-      every `interval_ns` nanoseconds after beginning of the trades.
+      every time interval, the duration of which is determined by the `ns_gen` structure.
 
 Exchange replies, subscription updates and trader requests does not come immediately after sending. The lag in
 nanoseconds is set by `exchange_to_trader_latency` (for exchange replies and subscription updates)
-and `trader_to_exchange_latency` (for trader requests) methods in the `Trader` trait. Note that they should not return
-the same value each time which makes possible to simulate a latency noise. Also note that trader wakeups do not suffer
+and `trader_to_exchange_latency` (for trader requests) methods in the `Trader` trait. Note that they can use the exchange random number generator `rng` and can return
+different values each time which makes it possible to simulate a latency noise. Also note that trader wakeups do not suffer
 from `exchange_to_trader_latency`.
+
+As you can see, the `ns_gen` structure must implement `NanoSecondGenerator` trait that looks like the following:
+
+```rust
+pub trait NanoSecondGenerator {
+    fn gen_ns(&mut self, rng: &mut StdRng, ts: Timestamp) -> NonZeroU64;
+}
+```
+
+`gen_ns` method here receives the exchange random number generator `rng` and the timestamp of the event `ts`.
 
 ### 3. ExchangeBuilder
 
@@ -467,7 +469,7 @@ signatures except that the latter one create an exchange that prints to the stan
 running. These functions have the following signature (consider an example with `ExchangeBuilder::new`):
 
 ```rust
-fn new<const TRD_UPDATES_OB: bool, const SUBSCRIPTIONS: SubscriptionConfig>(
+fn new<const TRD_UPDATES_OB: bool>(
     event_processor: EP,
     trader: &'a mut T,
     is_trading_time: TradingTimeCriterion,
@@ -481,8 +483,7 @@ As you can see, the first argument should implement the `EventProcessor` process
 implement the `Trader` trait and the last one should be a function that says whether the given `Timestamp` is a trading
 time.
 
-- `TRD_UPDATES_OB` template parameter is responsible for the behavior of the order book after receiving `TRD` events. If
-  it is set to `false` the order book will change or delete traded limit order only if the `PRL` entry corresponding to
-  this `TRD` exists. If it is set to `true` the order book will change or delete traded limit order immediately after
-  receiving the `TRD` event, so the existence of the corresponding `PRL` event is unnecessary.
-- `SUBSCRIPTIONS` template parameter is responsible for processing the trader subscription logic.
+`TRD_UPDATES_OB` template parameter is responsible for the behavior of the order book after receiving `TRD` events. If
+it is set to `false` the order book will change or delete traded limit order only if the `PRL` entry corresponding to
+this `TRD` exists. If it is set to `true` the order book will change or delete traded limit order immediately after
+receiving the `TRD` event, so the existence of the corresponding `PRL` event is unnecessary.

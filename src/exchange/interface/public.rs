@@ -5,9 +5,15 @@ use crate::exchange::{
     trades::history::TradesHistory,
 };
 use crate::history::parser::EventProcessor;
-use crate::lags::NanoSecondGenerator;
+use crate::lags::interface::NanoSecondGenerator;
 use crate::trader::Trader;
 use crate::types::{SeedableRng, StdRng, Timestamp};
+
+pub struct VoidNanoSecGen;
+
+impl NanoSecondGenerator for VoidNanoSecGen {
+    fn gen_ns(&mut self, _: &mut StdRng, _: Timestamp) -> NonZeroU64 { unreachable!() }
+}
 
 pub struct ExchangeBuilder<T, E> {
     _dummy_a: T,
@@ -21,8 +27,7 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
         event_processor: E,
         trader: &'a mut T,
         is_trading_time: fn(Timestamp) -> bool,
-    ) -> Exchange<'a, T, E, false, TRD_UPDATES_OB, false, false, false>
-    {
+    ) -> Exchange<'a, T, E, VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen, false, TRD_UPDATES_OB, false, false, false> {
         Exchange::build(event_processor, trader, is_trading_time)
     }
 
@@ -31,8 +36,11 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
         event_processor: E,
         trader: &'a mut T,
         is_trading_time: fn(Timestamp) -> bool,
-    ) -> Exchange<'a, T, E, true, TRD_UPDATES_OB, false, false, false>
-    {
+    ) -> Exchange<
+        'a, T, E,
+        VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
+        true, TRD_UPDATES_OB, false, false, false
+    > {
         Exchange::build(event_processor, trader, is_trading_time)
     }
 }
@@ -46,20 +54,22 @@ impl<'a,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool
 >
-Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
+Exchange<
+    'a, T, E,
+    VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
+    DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
+>
 {
-    fn build(mut event_processor: E,
-             trader: &'a mut T,
-             is_trading_time: fn(Timestamp) -> bool) -> Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
-    {
+    fn build(mut event_processor: E, trader: &'a mut T, is_trading_time: fn(Timestamp) -> bool) -> Exchange<
+        'a, T, E,
+        VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
+        DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
+    > {
         let first_event = match event_processor.yield_next_event() {
             Some(event) => { event }
             None => { panic!("Does not have any history events") }
         };
 
-        let nano_sec_gen_plug = |_: &mut StdRng, _: Timestamp| -> NonZeroU64 {
-            unreachable!()
-        };
         let mut exchange = Exchange {
             event_queue: Default::default(),
             event_processor,
@@ -75,9 +85,9 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
             exchange_closed: true,
             is_trading_time,
             rng: StdRng::from_entropy(),
-            ob_depth_and_interval_ns: (0, nano_sec_gen_plug),
-            trade_info_interval_ns: nano_sec_gen_plug,
-            wakeup: nano_sec_gen_plug,
+            ob_depth_and_interval_ns: (0, VoidNanoSecGen),
+            trade_info_interval_ns: VoidNanoSecGen,
+            wakeup: VoidNanoSecGen,
         };
         exchange.event_queue.schedule_history_event(first_event);
         if DEBUG {
@@ -85,7 +95,26 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
         }
         exchange
     }
+}
 
+impl<'a,
+    T: Trader,
+    E: EventProcessor,
+    ObLagGen: NanoSecondGenerator,
+    TrdLagGen: NanoSecondGenerator,
+    WkpLagGen: NanoSecondGenerator,
+    const DEBUG: bool,
+    const TRD_UPDATES_OB: bool,
+    const OB_SUBSCRIPTION: bool,
+    const TRD_SUBSCRIPTION: bool,
+    const WAKEUP_SUBSCRIPTION: bool
+>
+Exchange<
+    'a, T, E,
+    ObLagGen, TrdLagGen, WkpLagGen,
+    DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
+>
+{
     pub
     fn run_trades(&mut self) {
         while let Some(event) = self.event_queue.pop() {
@@ -94,7 +123,11 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
     }
 
     pub
-    fn ob_level_subscription_depth(self, ns_gen: NanoSecondGenerator, depth: usize) -> Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, true, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION> {
+    fn ob_level_subscription_depth<G: NanoSecondGenerator>(self, ns_gen: G, depth: usize) -> Exchange<
+        'a, T, E,
+        G, TrdLagGen, WkpLagGen,
+        DEBUG, TRD_UPDATES_OB, true, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
+    > {
         let Exchange {
             event_queue,
             event_processor,
@@ -136,7 +169,11 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
     }
 
     pub
-    fn ob_level_subscription_full(self, ns_gen: NanoSecondGenerator) -> Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, true, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION> {
+    fn ob_level_subscription_full<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange<
+        'a, T, E,
+        G, TrdLagGen, WkpLagGen,
+        DEBUG, TRD_UPDATES_OB, true, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
+    > {
         let Exchange {
             event_queue,
             event_processor,
@@ -178,7 +215,11 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
     }
 
     pub
-    fn trade_info_subscription(self, ns_gen: NanoSecondGenerator) -> Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, true, WAKEUP_SUBSCRIPTION> {
+    fn trade_info_subscription<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange<
+        'a, T, E,
+        ObLagGen, G, WkpLagGen,
+        DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, true, WAKEUP_SUBSCRIPTION
+    > {
         let Exchange {
             event_queue,
             event_processor,
@@ -220,7 +261,11 @@ Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAK
     }
 
     pub
-    fn with_periodic_wakeup(self, ns_gen: NanoSecondGenerator) -> Exchange<'a, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, true> {
+    fn with_periodic_wakeup<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange<
+        'a, T, E,
+        ObLagGen, TrdLagGen, G,
+        DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, true
+    > {
         let Exchange {
             event_queue,
             event_processor,

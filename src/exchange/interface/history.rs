@@ -3,6 +3,7 @@ use crate::history::{
     parser::EventProcessor,
     types::{HistoryEventBody, OrderOrigin},
 };
+use crate::lags::interface::NanoSecondGenerator;
 use crate::order::{LimitOrder, Order};
 use crate::trader::Trader;
 use crate::types::{Direction, OrderID, Price, Size};
@@ -13,7 +14,7 @@ struct TRDummyOrder {
 }
 
 impl const Order for TRDummyOrder {
-    fn get_order_id(&self) -> OrderID { unimplemented!() }
+    fn get_order_id(&self) -> OrderID { unreachable!() }
     fn get_order_size(&self) -> Size { self.size }
     fn mut_order_size(&mut self) -> &mut Size { &mut self.size }
     fn get_order_direction(&self) -> Direction { self.direction }
@@ -22,13 +23,16 @@ impl const Order for TRDummyOrder {
 impl<
     T: Trader,
     E: EventProcessor,
+    ObLagGen: NanoSecondGenerator,
+    TrdLagGen: NanoSecondGenerator,
+    WkpLagGen: NanoSecondGenerator,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool
 >
-Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
+Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate)
     fn handle_history_event(&mut self, event: HistoryEventBody)

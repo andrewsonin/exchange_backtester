@@ -2,6 +2,7 @@ use std::collections::hash_map::Entry;
 
 use crate::exchange::{Exchange, interface::private::AggressiveOrderType, types::{Event, EventBody}};
 use crate::history::{parser::EventProcessor, types::OrderOrigin};
+use crate::lags::interface::NanoSecondGenerator;
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason, SubscriptionUpdate};
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::Trader;
@@ -10,13 +11,16 @@ use crate::types::{Direction, Duration, OrderID, Timestamp};
 impl<
     T: Trader,
     E: EventProcessor,
+    ObLagGen: NanoSecondGenerator,
+    TrdLagGen: NanoSecondGenerator,
+    WkpLagGen: NanoSecondGenerator,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
     const TRD_SUBSCRIPTION: bool,
     const WAKEUP_SUBSCRIPTION: bool
 >
-Exchange<'_, T, E, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
+Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: Timestamp) {
         let deliver_ts = self.current_time;

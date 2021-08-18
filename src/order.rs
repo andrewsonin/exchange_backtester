@@ -7,9 +7,7 @@ pub(crate) trait Order {
     fn get_order_direction(&self) -> Direction;
 }
 
-pub(crate) trait PricedOrder
-    where Self: Order
-{
+pub(crate) trait PricedOrder: Order {
     fn get_price(&self) -> Price;
 }
 

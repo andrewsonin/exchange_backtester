@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet, LinkedList};
 
 use crate::exchange::{trades::history::TradesHistory, types::{EventQueue, OrderBookLevel}};
 use crate::history::parser::EventProcessor;
-use crate::lags::NanoSecondGenerator;
+use crate::lags::interface::NanoSecondGenerator;
 use crate::order::MarketOrder;
 use crate::trader::Trader;
 use crate::types::{Direction, OrderID, Price, StdRng, Timestamp};
@@ -15,6 +15,9 @@ pub struct Exchange<
     'a,
     T: Trader,
     E: EventProcessor,
+    ObLagGen: NanoSecondGenerator,
+    TrdLagGen: NanoSecondGenerator,
+    WkpLagGen: NanoSecondGenerator,
     const DEBUG: bool,
     const TRD_UPDATES_OB: bool,
     const OB_SUBSCRIPTION: bool,
@@ -42,7 +45,7 @@ pub struct Exchange<
     rng: StdRng,
 
     // Subscriptions
-    ob_depth_and_interval_ns: (usize, NanoSecondGenerator),
-    trade_info_interval_ns: NanoSecondGenerator,
-    wakeup: NanoSecondGenerator,
+    ob_depth_and_interval_ns: (usize, ObLagGen),
+    trade_info_interval_ns: TrdLagGen,
+    wakeup: WkpLagGen,
 }

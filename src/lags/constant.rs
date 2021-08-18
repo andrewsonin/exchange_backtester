@@ -1,20 +1,22 @@
+use crate::lags::interface::NanoSecondGenerator;
 use crate::types::{NonZeroU64, StdRng, Timestamp};
 
-const ONE_MICROSECOND: NonZeroU64 = NonZeroU64::new(1000).unwrap();
-const ONE_MILLISECOND: NonZeroU64 = NonZeroU64::new(ONE_MICROSECOND.get() * 1000).unwrap();
-const ONE_SECOND: NonZeroU64 = NonZeroU64::new(ONE_MILLISECOND.get() * 1000).unwrap();
-const ONE_MINUTE: NonZeroU64 = NonZeroU64::new(ONE_SECOND.get() * 60).unwrap();
-const ONE_HOUR: NonZeroU64 = NonZeroU64::new(ONE_MINUTE.get() * 60).unwrap();
-const ONE_DAY: NonZeroU64 = NonZeroU64::new(ONE_HOUR.get() * 24).unwrap();
+pub struct ConstNanoSecondGenerator(pub NonZeroU64);
 
-pub const fn one_microsecond(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_MICROSECOND }
+impl const NanoSecondGenerator for ConstNanoSecondGenerator {
+    fn gen_ns(&mut self, _: &mut StdRng, _: Timestamp) -> NonZeroU64 { self.0 }
+}
 
-pub const fn one_millisecond(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_MILLISECOND }
+const _ONE_MICROSECOND: NonZeroU64 = NonZeroU64::new(1000).unwrap();
+const _ONE_MILLISECOND: NonZeroU64 = NonZeroU64::new(_ONE_MICROSECOND.get() * 1000).unwrap();
+const _ONE_SECOND: NonZeroU64 = NonZeroU64::new(_ONE_MILLISECOND.get() * 1000).unwrap();
+const _ONE_MINUTE: NonZeroU64 = NonZeroU64::new(_ONE_SECOND.get() * 60).unwrap();
+const _ONE_HOUR: NonZeroU64 = NonZeroU64::new(_ONE_MINUTE.get() * 60).unwrap();
+const _ONE_DAY: NonZeroU64 = NonZeroU64::new(_ONE_HOUR.get() * 24).unwrap();
 
-pub const fn one_second(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_SECOND }
-
-pub const fn one_minute(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_MINUTE }
-
-pub const fn one_hour(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_HOUR }
-
-pub const fn one_day(_: &mut StdRng, _: Timestamp) -> NonZeroU64 { ONE_DAY }
+pub const ONE_MICROSECOND: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_MICROSECOND);
+pub const ONE_MILLISECOND: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_MILLISECOND);
+pub const ONE_SECOND: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_SECOND);
+pub const ONE_MINUTE: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_MINUTE);
+pub const ONE_HOUR: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_HOUR);
+pub const ONE_DAY: ConstNanoSecondGenerator = ConstNanoSecondGenerator(_ONE_DAY);

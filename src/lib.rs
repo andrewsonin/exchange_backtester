@@ -1,4 +1,11 @@
-#![feature(const_fn_fn_ptr_basics, const_panic, const_generics, const_trait_impl, const_fn_trait_bound, const_mut_refs, const_option, linked_list_cursors)]
+#![feature(const_fn_fn_ptr_basics)]
+#![feature(const_fn_trait_bound)]
+#![feature(const_generics)]
+#![feature(const_mut_refs)]
+#![feature(const_option)]
+#![feature(const_panic)]
+#![feature(const_trait_impl)]
+#![feature(linked_list_cursors)]
 
 mod utils;
 mod types;
@@ -12,38 +19,47 @@ pub mod input;
 pub mod lags;
 
 pub mod prelude {
-    pub use crate::exchange::{Exchange, interface::public::ExchangeBuilder};
-    pub use crate::history::{parser::{HistoryParser, interface::EventProcessor}, types::*};
-    pub use crate::input;
-    pub use crate::input::{cli::{ArgumentParser, Clap}, inline::StaticInput, InputInterface};
-    pub use crate::lags;
-    pub use crate::message::{
-        CancellationReason,
-        DiscardingReason,
-        ExchangeReply,
-        InabilityToCancelReason,
-        TraderRequest,
+    pub use crate::{
+        exchange::{Exchange, interface::public::ExchangeBuilder},
+        history::{
+            parser::{HistoryParser, interface::EventProcessor},
+            types::{HistoryEvent, HistoryEventBody},
+        },
+        input,
+        input::{cli::{ArgumentParser, Clap}, inline::StaticInput, InputInterface},
+        lags,
+        lags::interface::NanoSecondGenerator,
+        message::{
+            CancellationReason,
+            DiscardingReason,
+            ExchangeReply,
+            InabilityToCancelReason,
+            TraderRequest,
+        },
+        order::*,
+        trader::{
+            examples,
+            subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo},
+            Trader,
+        },
+        types::{
+            Date,
+            Direction,
+            Duration,
+            NonZeroU64,
+            NonZeroUsize,
+            OrderID,
+            Price,
+            Rng,
+            SeedableRng,
+            Size,
+            StdRng,
+            Time,
+            Timelike,
+            Timestamp,
+        },
+        utils::ExpectWith,
     };
-    pub use crate::order::*;
-    pub use crate::trader::{
-        examples,
-        subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo},
-        Trader,
-    };
-    pub use crate::types::{
-        Date,
-        Direction,
-        Duration,
-        NonZeroU64,
-        NonZeroUsize,
-        OrderID,
-        Price,
-        Size,
-        Time,
-        Timelike,
-        Timestamp,
-    };
-    pub use crate::utils::ExpectWith;
 }
 
 #[cfg(test)]
@@ -104,9 +120,9 @@ mod integration {
             is_trading_time,
         );
         let mut exchange = exchange
-            .ob_level_subscription_depth(lags::constant::one_second, 10)
-            .trade_info_subscription(lags::constant::one_second)
-            .with_periodic_wakeup(lags::constant::one_minute);
+            .ob_level_subscription_depth(lags::constant::ONE_SECOND, 10)
+            .trade_info_subscription(lags::constant::ONE_SECOND)
+            .with_periodic_wakeup(lags::constant::ONE_MINUTE);
 
         exchange.run_trades()
     }

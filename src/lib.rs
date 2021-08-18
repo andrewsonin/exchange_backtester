@@ -36,7 +36,7 @@ pub mod prelude {
             InabilityToCancelReason,
             TraderRequest,
         },
-        order::*,
+        order::{LimitOrder, MarketOrder},
         trader::{
             examples,
             subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo},

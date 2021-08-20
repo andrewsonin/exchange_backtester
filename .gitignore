@@ -12,5 +12,8 @@ Cargo.lock
 /.idea/
 
 # Temporary files for testing
-/tests/*/*/PRL.txt
-/tests/*/*/TRD.txt
+/tests/data/*/*/PRL.txt
+/tests/data/*/*/TRD.txt
+
+# Directories that contain private or large data files
+/tests/data/integration/one_day/

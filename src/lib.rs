@@ -76,6 +76,7 @@ mod integration {
     fn prepare_testing(test_name: &str) -> StaticInput {
         let test_dir = Path::new(SOURCE_DIR)
             .join("tests")
+            .join("data")
             .join("integration")
             .join(test_name);
         let prl_files = test_dir.join("PRL.txt");

@@ -3,7 +3,7 @@ use std::{cmp::Ordering, collections::LinkedList, iter::FromIterator};
 use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
-use crate::exchange::trades::history::HistoryTrade;
+use crate::exchange::trades::history::ExecutedTrade;
 use crate::history::{parser::EventProcessor, types::OrderOrigin};
 use crate::lags::interface::NanoSecondGenerator;
 use crate::message::{
@@ -102,7 +102,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         // (OrderExecuted, OrderPartiallyExecuted)
                         let exec_size = order.get_order_size();
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push(HistoryTrade {
+                            self.executed_trades.push(ExecutedTrade {
                                 datetime: self.current_time,
                                 price,
                                 size: exec_size,
@@ -133,7 +133,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         // (OrderExecuted, OrderExecuted)
                         let exec_size = order.get_order_size();
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push(HistoryTrade {
+                            self.executed_trades.push(ExecutedTrade {
                                 datetime: self.current_time,
                                 price,
                                 size: exec_size,
@@ -172,7 +172,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         let exec_size = limit_order.size;
                         *order.mut_order_size() -= exec_size;
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push(HistoryTrade {
+                            self.executed_trades.push(ExecutedTrade {
                                 datetime: self.current_time,
                                 price,
                                 size: exec_size,
@@ -279,7 +279,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push(HistoryTrade {
+                        self.executed_trades.push(ExecutedTrade {
                             datetime: self.current_time,
                             price,
                             size: exec_size,
@@ -298,7 +298,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push(HistoryTrade {
+                        self.executed_trades.push(ExecutedTrade {
                             datetime: self.current_time,
                             price,
                             size: exec_size,
@@ -319,7 +319,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push(HistoryTrade {
+                        self.executed_trades.push(ExecutedTrade {
                             datetime: self.current_time,
                             price,
                             size: exec_size,

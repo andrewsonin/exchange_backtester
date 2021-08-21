@@ -1,4 +1,4 @@
-use crate::exchange::trades::history::HistoryTrade;
+use crate::exchange::trades::history::ExecutedTrade;
 use crate::message::{ExchangeReply, TraderRequest};
 use crate::trader::{subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot}, Trader};
 use crate::types::{StdRng, Timestamp};
@@ -9,7 +9,7 @@ impl HandleSubscriptionUpdates for VoidTrader {
     fn handle_order_book_snapshot(&mut self, _: Timestamp, _: Timestamp, _: OrderBookSnapshot) -> Vec<TraderRequest> {
         vec![]
     }
-    fn handle_trade_info_update(&mut self, _: Timestamp, _: Timestamp, _: Vec<HistoryTrade>) -> Vec<TraderRequest> {
+    fn handle_trade_info_update(&mut self, _: Timestamp, _: Timestamp, _: Vec<ExecutedTrade>) -> Vec<TraderRequest> {
         vec![]
     }
     fn handle_wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> {

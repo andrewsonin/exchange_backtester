@@ -69,7 +69,7 @@ of `rustc`.
        fn handle_trade_info_update(&mut self,
                                    exchange_ts: Timestamp,
                                    deliver_ts: Timestamp,
-                                   trade_info: Option<TradeInfo>) -> Vec<TraderRequest> { vec![] }
+                                   trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
        // Called when the time comes for the scheduled periodic trader wakeup
        fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
    }
@@ -297,7 +297,7 @@ impl HandleSubscriptionUpdates for CustomTrader {
    fn handle_trade_info_update(&mut self,
                                exchange_ts: Timestamp,
                                deliver_ts: Timestamp,
-                               trade_info: Option<TradeInfo>) -> Vec<TraderRequest> { vec![] }
+                               trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
    // Called when the time comes for the scheduled periodic trader wakeup
    fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
 }

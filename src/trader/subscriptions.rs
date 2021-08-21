@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use crate::exchange::trades::history::HistoryTrade;
 use crate::message::TraderRequest;
 use crate::types::{Price, Size, Timestamp};
 
@@ -11,7 +12,7 @@ pub trait HandleSubscriptionUpdates {
     fn handle_trade_info_update(&mut self,
                                 exchange_ts: Timestamp,
                                 deliver_ts: Timestamp,
-                                trade_info: Option<TradeInfo>) -> Vec<TraderRequest>;
+                                trade_info: Vec<HistoryTrade>) -> Vec<TraderRequest>;
     fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest>;
 }
 

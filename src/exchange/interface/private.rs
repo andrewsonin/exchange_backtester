@@ -3,6 +3,7 @@ use std::{cmp::Ordering, collections::LinkedList, iter::FromIterator};
 use AggressiveOrderType::*;
 
 use crate::exchange::{Exchange, types::{Event, EventBody, OrderBookEntry, OrderBookLevel}};
+use crate::exchange::trades::history::HistoryTrade;
 use crate::history::{parser::EventProcessor, types::OrderOrigin};
 use crate::lags::interface::NanoSecondGenerator;
 use crate::message::{
@@ -47,7 +48,6 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         self.history_order_ids.clear();
         self.bids.clear();
         self.asks.clear();
-        self.executed_trades.clear();
 
         if END_OF_TRADES {
             self.trader_submitted_orders.clear();
@@ -102,7 +102,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         // (OrderExecuted, OrderPartiallyExecuted)
                         let exec_size = order.get_order_size();
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                            self.executed_trades.push(HistoryTrade {
+                                datetime: self.current_time,
+                                price,
+                                size: exec_size,
+                                direction: order.get_order_direction(),
+                            })
                         }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
@@ -128,7 +133,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         // (OrderExecuted, OrderExecuted)
                         let exec_size = order.get_order_size();
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                            self.executed_trades.push(HistoryTrade {
+                                datetime: self.current_time,
+                                price,
+                                size: exec_size,
+                                direction: order.get_order_direction(),
+                            })
                         }
                         match ORDER_TYPE {
                             TraderMarketOrder => {
@@ -162,7 +172,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         let exec_size = limit_order.size;
                         *order.mut_order_size() -= exec_size;
                         if TRD_SUBSCRIPTION {
-                            self.executed_trades.push((price, exec_size, order.get_order_direction()))
+                            self.executed_trades.push(HistoryTrade {
+                                datetime: self.current_time,
+                                price,
+                                size: exec_size,
+                                direction: order.get_order_direction(),
+                            })
                         }
                         if Self::is_trader_aggressive_order::<ORDER_TYPE>() {
                             let reply = OrderPartiallyExecuted(order.get_order_id(), exec_size, price);
@@ -264,7 +279,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                        self.executed_trades.push(HistoryTrade {
+                            datetime: self.current_time,
+                            price,
+                            size: exec_size,
+                            direction: pending.get_order_direction(),
+                        })
                     }
                     return;
                 }
@@ -278,7 +298,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                        self.executed_trades.push(HistoryTrade {
+                            datetime: self.current_time,
+                            price,
+                            size: exec_size,
+                            direction: pending.get_order_direction(),
+                        })
                     }
                     cursor.remove_current();
                     return;
@@ -294,7 +319,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
                     }
                     if TRD_SUBSCRIPTION {
-                        self.executed_trades.push((price, exec_size, pending.get_order_direction()))
+                        self.executed_trades.push(HistoryTrade {
+                            datetime: self.current_time,
+                            price,
+                            size: exec_size,
+                            direction: pending.get_order_direction(),
+                        })
                     }
                     cursor.remove_current();
                 }
@@ -482,13 +512,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                             timestamp: self.current_time + Duration::nanoseconds(T::exchange_to_trader_latency(&mut self.rng, self.current_time) as i64),
                             body: EventBody::SubscriptionUpdate(
                                 SubscriptionUpdate::TradeInfo(
-                                    self.executed_trades.get_trade_info()
+                                    self.executed_trades.yield_trade_info()
                                 ),
                                 self.current_time,
                             ),
                         }
                     );
-                    self.executed_trades.clear();
                     let next_time = self.current_time + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_time).get() as i64);
                     if (self.is_trading_time)(next_time) {
                         self.event_queue.push(

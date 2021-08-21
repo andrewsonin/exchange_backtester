@@ -1,9 +1,6 @@
 use std::num::NonZeroU64;
 
-use crate::exchange::{
-    Exchange,
-    trades::history::TradesHistory,
-};
+use crate::exchange::Exchange;
 use crate::history::parser::EventProcessor;
 use crate::lags::interface::NanoSecondGenerator;
 use crate::trader::Trader;
@@ -80,7 +77,7 @@ Exchange<
             trader_pending_market_orders: Default::default(),
             trader_pending_limit_orders: Default::default(),
             trader_submitted_orders: Default::default(),
-            executed_trades: TradesHistory::new(),
+            executed_trades: Default::default(),
             current_time: first_event.timestamp,
             exchange_closed: true,
             is_trading_time,

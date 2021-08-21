@@ -1,5 +1,5 @@
-use crate::types::{NonZeroU64, StdRng, Timestamp};
+use crate::types::{DateTime, NonZeroU64, StdRng};
 
 pub trait NanoSecondGenerator {
-    fn gen_ns(&mut self, rng: &mut StdRng, ts: Timestamp) -> NonZeroU64;
+    fn gen_ns(&mut self, rng: &mut StdRng, dt: DateTime) -> NonZeroU64;
 }

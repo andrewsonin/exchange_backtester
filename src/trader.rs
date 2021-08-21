@@ -1,16 +1,16 @@
 use crate::message::{ExchangeReply, TraderRequest};
 use crate::trader::subscriptions::HandleSubscriptionUpdates;
-use crate::types::{StdRng, Timestamp};
+use crate::types::{DateTime, StdRng};
 
 pub mod examples;
 pub mod subscriptions;
 
 pub trait Trader: HandleSubscriptionUpdates {
-    fn exchange_to_trader_latency(rng: &mut StdRng, ts: Timestamp) -> u64;
-    fn trader_to_exchange_latency(rng: &mut StdRng, ts: Timestamp) -> u64;
+    fn exchange_to_trader_latency(rng: &mut StdRng, dt: DateTime) -> u64;
+    fn trader_to_exchange_latency(rng: &mut StdRng, dt: DateTime) -> u64;
     fn handle_exchange_reply(&mut self,
-                             exchange_ts: Timestamp,
-                             deliver_ts: Timestamp,
+                             exchange_dt: DateTime,
+                             deliver_dt: DateTime,
                              reply: ExchangeReply) -> Vec<TraderRequest>;
-    fn set_new_trading_period(&mut self, ts: Timestamp);
+    fn set_new_trading_period(&mut self, dt: DateTime);
 }

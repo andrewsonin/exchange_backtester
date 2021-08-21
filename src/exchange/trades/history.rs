@@ -1,8 +1,8 @@
-use crate::types::{Direction, Price, Size, Timestamp};
+use crate::types::{DateTime, Direction, Price, Size};
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ExecutedTrade {
-    pub datetime: Timestamp,
+    pub datetime: DateTime,
     pub price: Price,
     pub size: Size,
     pub direction: Direction,

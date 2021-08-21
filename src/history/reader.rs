@@ -6,14 +6,14 @@ use csv::ReaderBuilder;
 
 use crate::history::types::{HistoryEvent, PRLColumnIndexInfo, TRDColumnIndexInfo};
 use crate::input::InputInterface;
-use crate::types::{Direction, OrderID, Price, Size, Timestamp};
+use crate::types::{DateTime, Direction, OrderID, Price, Size};
 use crate::utils::ExpectWith;
 
 pub(crate)
 struct PRLReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
-    buffered_entries: VecDeque<(Timestamp, Size, Direction, Price, OrderID)>,
+    buffered_entries: VecDeque<(DateTime, Size, Direction, Price, OrderID)>,
     args: &'a ParsingInfo,
 }
 
@@ -38,7 +38,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
     }
 
     pub(crate)
-    fn next(&mut self) -> Option<(Timestamp, Size, Direction, Price, OrderID)>
+    fn next(&mut self) -> Option<(DateTime, Size, Direction, Price, OrderID)>
     {
         match self.buffered_entries.pop_front() {
             None => loop {
@@ -96,7 +96,7 @@ pub(crate)
 struct TRDReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
-    buffered_entries: VecDeque<(Timestamp, Size, Direction, OrderID)>,
+    buffered_entries: VecDeque<(DateTime, Size, Direction, OrderID)>,
     args: &'a ParsingInfo,
 }
 
@@ -121,7 +121,7 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
     }
 
     pub(crate)
-    fn next(&mut self) -> Option<(Timestamp, Size, Direction, OrderID)>
+    fn next(&mut self) -> Option<(DateTime, Size, Direction, OrderID)>
     {
         match self.buffered_entries.pop_front() {
             None => loop {

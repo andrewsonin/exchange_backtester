@@ -16,8 +16,8 @@ struct CustomTrader<'a> {
 
 impl HandleSubscriptionUpdates for CustomTrader<'_> {
     fn handle_order_book_snapshot(&mut self,
-                                  exchange_ts: Timestamp,
-                                  _: Timestamp,
+                                  exchange_dt: DateTime,
+                                  _: DateTime,
                                   ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
     {
         let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
@@ -29,24 +29,24 @@ impl HandleSubscriptionUpdates for CustomTrader<'_> {
             (_, Some((ask_price, _))) => { ask_price.to_f64(self.price_step) }
             _ => { return vec![]; }
         };
-        write!(self.file_to_write, "{},{:.5}\n", exchange_ts, mid_price);
+        write!(self.file_to_write, "{},{:.5}\n", exchange_dt, mid_price).unwrap();
         vec![]
     }
-    fn handle_trade_info_update(&mut self, _: Timestamp, _: Timestamp, _: Option<TradeInfo>) -> Vec<TraderRequest> {
+    fn handle_trade_info_update(&mut self, _: DateTime, _: DateTime, _: Vec<ExecutedTrade>) -> Vec<TraderRequest> {
         vec![]
     }
-    fn handle_wakeup(&mut self, _: Timestamp) -> Vec<TraderRequest> {
+    fn handle_wakeup(&mut self, _: DateTime) -> Vec<TraderRequest> {
         vec![]
     }
 }
 
 impl const Trader for CustomTrader<'_> {
-    fn exchange_to_trader_latency(_: &mut StdRng, _: Timestamp) -> u64 { 0 }
-    fn trader_to_exchange_latency(_: &mut StdRng, _: Timestamp) -> u64 { 0 }
-    fn handle_exchange_reply(&mut self, _: Timestamp, _: Timestamp, _: ExchangeReply) -> Vec<TraderRequest> {
+    fn exchange_to_trader_latency(_: &mut StdRng, _: DateTime) -> u64 { 0 }
+    fn trader_to_exchange_latency(_: &mut StdRng, _: DateTime) -> u64 { 0 }
+    fn handle_exchange_reply(&mut self, _: DateTime, _: DateTime, _: ExchangeReply) -> Vec<TraderRequest> {
         vec![]
     }
-    fn set_new_trading_period(&mut self, _: Timestamp) {}
+    fn set_new_trading_period(&mut self, _: DateTime) {}
 }
 
 fn main() {
@@ -62,17 +62,17 @@ fn main() {
     let history_parser = HistoryParser::new(&input);
 
     let mut buffer = BufWriter::new(File::create(path.join("output.csv")).unwrap());
-    write!(buffer, "Timestamp,MidPrice\n");
+    write!(buffer, "Timestamp,MidPrice\n").unwrap();
 
     let mut trader = CustomTrader {
         price_step: input.get_price_step(),
         file_to_write: &mut buffer,
     };
 
-    let is_trading_time = |timestamp: Timestamp| {
-        match timestamp.hour() {
+    let is_trading_dt = |datetime: DateTime| {
+        match datetime.hour() {
             7..=22 => { true }
-            23 => { timestamp.minute() < 50 }
+            23 => { datetime.minute() < 50 }
             _ => { false }
         }
     };
@@ -80,7 +80,7 @@ fn main() {
     ExchangeBuilder::new::<false>(
         history_parser,
         &mut trader,
-        is_trading_time,
+        is_trading_dt,
     )
         .ob_level_subscription_depth(lags::constant::ONE_HOUR, 1)
         .run_trades();

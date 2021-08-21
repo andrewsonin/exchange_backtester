@@ -4,12 +4,12 @@ use crate::exchange::Exchange;
 use crate::history::parser::EventProcessor;
 use crate::lags::interface::NanoSecondGenerator;
 use crate::trader::Trader;
-use crate::types::{SeedableRng, StdRng, Timestamp};
+use crate::types::{DateTime, SeedableRng, StdRng};
 
 pub struct VoidNanoSecGen;
 
 impl NanoSecondGenerator for VoidNanoSecGen {
-    fn gen_ns(&mut self, _: &mut StdRng, _: Timestamp) -> NonZeroU64 { unreachable!() }
+    fn gen_ns(&mut self, _: &mut StdRng, _: DateTime) -> NonZeroU64 { unreachable!() }
 }
 
 pub struct ExchangeBuilder<T, E> {
@@ -23,7 +23,7 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
     fn new<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_time: fn(Timestamp) -> bool,
+        is_trading_time: fn(DateTime) -> bool,
     ) -> Exchange<'a, T, E, VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen, false, TRD_UPDATES_OB, false, false, false> {
         Exchange::build(event_processor, trader, is_trading_time)
     }
@@ -32,7 +32,7 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
     fn new_debug<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_time: fn(Timestamp) -> bool,
+        is_trading_time: fn(DateTime) -> bool,
     ) -> Exchange<
         'a, T, E,
         VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
@@ -57,7 +57,7 @@ Exchange<
     DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
 >
 {
-    fn build(mut event_processor: E, trader: &'a mut T, is_trading_time: fn(Timestamp) -> bool) -> Exchange<
+    fn build(mut event_processor: E, trader: &'a mut T, is_trading_datetime: fn(DateTime) -> bool) -> Exchange<
         'a, T, E,
         VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
         DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
@@ -78,9 +78,9 @@ Exchange<
             trader_pending_limit_orders: Default::default(),
             trader_submitted_orders: Default::default(),
             executed_trades: Default::default(),
-            current_time: first_event.timestamp,
+            current_dt: first_event.datetime,
             exchange_closed: true,
-            is_trading_time,
+            is_trading_dt: is_trading_datetime,
             rng: StdRng::from_entropy(),
             ob_depth_and_interval_ns: (0, VoidNanoSecGen),
             trade_info_interval_ns: VoidNanoSecGen,
@@ -88,7 +88,7 @@ Exchange<
         };
         exchange.event_queue.schedule_history_event(first_event);
         if DEBUG {
-            eprintln!("{} :: build :: BEGIN", first_event.timestamp)
+            eprintln!("{} :: build :: BEGIN", first_event.datetime)
         }
         exchange
     }
@@ -136,9 +136,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             trade_info_interval_ns,
             wakeup,
@@ -155,9 +155,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns: (depth, ns_gen),
             trade_info_interval_ns,
@@ -182,9 +182,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             trade_info_interval_ns,
             wakeup,
@@ -201,9 +201,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns: (usize::MAX, ns_gen),
             trade_info_interval_ns,
@@ -228,9 +228,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns,
             wakeup,
@@ -247,9 +247,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns: ns_gen,
@@ -274,9 +274,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns,
@@ -293,9 +293,9 @@ Exchange<
             trader_pending_limit_orders,
             trader_submitted_orders,
             executed_trades,
-            current_time,
+            current_dt: current_time,
             exchange_closed,
-            is_trading_time,
+            is_trading_dt: is_trading_time,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns,

@@ -3,7 +3,7 @@ use crate::input::{default::*, InputInterface};
 pub struct StaticInput {
     prl_files: String,
     trd_files: String,
-    order_timestamp_colname: String,
+    order_datetime_colname: String,
     order_id_colname: String,
     order_price_colname: String,
     order_size_colname: String,
@@ -18,7 +18,7 @@ impl Default for StaticInput {
         StaticInput {
             prl_files: String::new(),
             trd_files: String::new(),
-            order_timestamp_colname: ORDER_TIMESTAMP_COLNAME.to_string(),
+            order_datetime_colname: ORDER_DATETIME_COLNAME.to_string(),
             order_id_colname: ORDER_ID_COLNAME.to_string(),
             order_price_colname: ORDER_PRICE_COLNAME.to_string(),
             order_size_colname: ORDER_SIZE_COLNAME.to_string(),
@@ -41,8 +41,8 @@ impl StaticInput {
         self.trd_files = trd_files.to_string();
         self
     }
-    pub fn with_ts_colname(mut self, order_timestamp_colname: &str) -> Self {
-        self.order_timestamp_colname = order_timestamp_colname.to_string();
+    pub fn with_dt_colname(mut self, order_datetime_colname: &str) -> Self {
+        self.order_datetime_colname = order_datetime_colname.to_string();
         self
     }
     pub fn with_id_colname(mut self, order_id_colname: &str) -> Self {
@@ -88,7 +88,7 @@ impl InputInterface for StaticInput {
         }
         self.trd_files.as_str()
     }
-    fn get_order_timestamp_colname(&self) -> &str { self.order_timestamp_colname.as_str() }
+    fn get_order_datetime_colname(&self) -> &str { self.order_datetime_colname.as_str() }
     fn get_order_id_colname(&self) -> &str { self.order_id_colname.as_str() }
     fn get_order_price_colname(&self) -> &str { self.order_price_colname.as_str() }
     fn get_order_size_colname(&self) -> &str { self.order_size_colname.as_str() }

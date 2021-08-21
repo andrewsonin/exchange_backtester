@@ -6,7 +6,7 @@ use rand::rngs::StdRng;
 use crate::history::types::{HistoryEvent, HistoryEventBody, OrderOrigin};
 use crate::message::{ExchangeReply, SubscriptionSchedule, SubscriptionUpdate, TraderRequest};
 use crate::trader::Trader;
-use crate::types::{Duration, OrderID, Price, Size, Timestamp};
+use crate::types::{DateTime, Duration, OrderID, Price, Size};
 
 pub(crate) struct OrderBookLevel {
     pub(crate) price: Price,
@@ -30,7 +30,7 @@ pub(crate) struct EventQueue(BinaryHeap<Reverse<Event>>);
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct Event {
-    pub(crate) timestamp: Timestamp,
+    pub(crate) datetime: DateTime,
     pub(crate) body: EventBody,
 }
 
@@ -38,8 +38,8 @@ pub(crate) struct Event {
 pub(crate) enum EventBody {
     HistoryEvent(HistoryEventBody),
     TraderRequest(TraderRequest),
-    ExchangeReply(ExchangeReply, Timestamp),
-    SubscriptionUpdate(SubscriptionUpdate, Timestamp),
+    ExchangeReply(ExchangeReply, DateTime),
+    SubscriptionUpdate(SubscriptionUpdate, DateTime),
     SubscriptionSchedule(SubscriptionSchedule),
     TraderWakeUp,
 }
@@ -66,12 +66,12 @@ impl EventQueue {
 
     pub(crate) fn schedule_reply_for_trader<T: Trader>(&mut self,
                                                        reply: ExchangeReply,
-                                                       exchange_ts: Timestamp,
+                                                       exchange_dt: DateTime,
                                                        rng: &mut StdRng) {
         self.push(
             Event {
-                timestamp: exchange_ts + Duration::nanoseconds(T::exchange_to_trader_latency(rng, exchange_ts) as i64),
-                body: EventBody::ExchangeReply(reply, exchange_ts),
+                datetime: exchange_dt + Duration::nanoseconds(T::exchange_to_trader_latency(rng, exchange_dt) as i64),
+                body: EventBody::ExchangeReply(reply, exchange_dt),
             }
         )
     }
@@ -79,7 +79,7 @@ impl EventQueue {
     pub(crate) fn schedule_history_event(&mut self, event: HistoryEvent) {
         self.push(
             Event {
-                timestamp: event.timestamp,
+                datetime: event.datetime,
                 body: EventBody::HistoryEvent(event.event),
             }
         )

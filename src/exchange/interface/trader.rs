@@ -6,7 +6,7 @@ use crate::lags::interface::NanoSecondGenerator;
 use crate::message::{CancellationReason, DiscardingReason, ExchangeReply, InabilityToCancelReason, SubscriptionUpdate};
 use crate::order::{LimitOrder, MarketOrder, Order};
 use crate::trader::Trader;
-use crate::types::{Direction, Duration, OrderID, Timestamp};
+use crate::types::{DateTime, Direction, Duration, OrderID};
 
 impl<
     T: Trader,
@@ -22,8 +22,8 @@ impl<
 >
 Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
-    pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: Timestamp) {
-        let deliver_ts = self.current_time;
+    pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: DateTime) {
+        let deliver_ts = self.current_dt;
 
         let trader_reactions = match update {
             SubscriptionUpdate::OrderBook(ob_snapshot) => {
@@ -39,7 +39,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 .into_iter()
                 .map(
                     |request| Event {
-                        timestamp: deliver_ts + Duration::nanoseconds(T::trader_to_exchange_latency(rng, deliver_ts) as i64),
+                        datetime: deliver_ts + Duration::nanoseconds(T::trader_to_exchange_latency(rng, deliver_ts) as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )
@@ -63,7 +63,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             self.trader_submitted_orders.insert(order_id);
             ExchangeReply::OrderAccepted(order_id)
         };
-        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
+        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_dt, &mut self.rng);
     }
 
     pub(crate) fn submit_market_order(&mut self, order: MarketOrder) {
@@ -83,7 +83,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             self.trader_submitted_orders.insert(order_id);
             ExchangeReply::OrderAccepted(order_id)
         };
-        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
+        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_dt, &mut self.rng);
     }
 
     pub(crate) fn cancel_limit_order(&mut self, order_id: OrderID) {
@@ -133,7 +133,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 }
             }
         };
-        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
+        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_dt, &mut self.rng);
     }
 
     pub(crate) fn cancel_market_order(&mut self, order_id: OrderID) {
@@ -165,6 +165,6 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 }
             )()
         };
-        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_time, &mut self.rng);
+        self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_dt, &mut self.rng);
     }
 }

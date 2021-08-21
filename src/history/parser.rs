@@ -7,7 +7,7 @@ use crate::history::{
     types::{HistoryEvent, HistoryEventBody},
 };
 use crate::input::InputInterface;
-use crate::types::{Direction, OrderID, Price, Size, Timestamp};
+use crate::types::{DateTime, Direction, OrderID, Price, Size};
 
 pub mod interface;
 
@@ -17,10 +17,10 @@ pub struct HistoryParser<'a, ParsingInfo>
     prl_parser: PRLReader<'a, ParsingInfo>,
     trd_parser: TRDReader<'a, ParsingInfo>,
 
-    last_prl: Option<(Timestamp, Size, Direction, Price, OrderID)>,
-    last_trd: Option<(Timestamp, Size, Direction, OrderID)>,
+    last_prl: Option<(DateTime, Size, Direction, Price, OrderID)>,
+    last_trd: Option<(DateTime, Size, Direction, OrderID)>,
 
-    last_time: Timestamp,
+    last_dt: DateTime,
 }
 
 impl<ParsingInfo: InputInterface> HistoryParser<'_, ParsingInfo>
@@ -42,7 +42,7 @@ impl<ParsingInfo: InputInterface> HistoryParser<'_, ParsingInfo>
             trd_parser,
             last_prl,
             last_trd,
-            last_time,
+            last_dt: last_time,
         }
     }
 }
@@ -59,45 +59,45 @@ impl<T: InputInterface> EventProcessor for HistoryParser<'_, T>
                 match (prl_ts.cmp(trd_ts), trd_id > prl_id) {
                     (Ordering::Less, _) | (Ordering::Equal, true) => {
                         let res = HistoryEvent {
-                            timestamp: *prl_ts,
+                            datetime: *prl_ts,
                             event: HistoryEventBody::PRL(*prl_size, *prl_dir, *prl_price, *prl_id),
                         };
-                        if res.timestamp < self.last_time {
+                        if res.datetime < self.last_dt {
                             panic!("History file entries are not stored in ascending order by time")
                         }
-                        self.last_time = res.timestamp;
+                        self.last_dt = res.datetime;
                         self.last_prl = self.prl_parser.next();
                         Some(res)
                     }
                     (Ordering::Greater, _) | (Ordering::Equal, false) => {
-                        let res = HistoryEvent { timestamp: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
-                        if res.timestamp < self.last_time {
+                        let res = HistoryEvent { datetime: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
+                        if res.datetime < self.last_dt {
                             panic!("History file entries are not stored in ascending order by time")
                         }
-                        self.last_time = res.timestamp;
+                        self.last_dt = res.datetime;
                         self.last_trd = self.trd_parser.next();
                         Some(res)
                     }
                 }
             }
             (Some((trd_ts, trd_size, trd_dir, _)), None) => {
-                let res = HistoryEvent { timestamp: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
-                if res.timestamp < self.last_time {
+                let res = HistoryEvent { datetime: *trd_ts, event: HistoryEventBody::TRD(*trd_size, *trd_dir) };
+                if res.datetime < self.last_dt {
                     panic!("History file entries are not stored in ascending order by time")
                 }
-                self.last_time = res.timestamp;
+                self.last_dt = res.datetime;
                 self.last_trd = self.trd_parser.next();
                 Some(res)
             }
             (None, Some((prl_ts, prl_size, prl_dir, prl_price, prl_id))) => {
                 let res = HistoryEvent {
-                    timestamp: *prl_ts,
+                    datetime: *prl_ts,
                     event: HistoryEventBody::PRL(*prl_size, *prl_dir, *prl_price, *prl_id),
                 };
-                if res.timestamp < self.last_time {
+                if res.datetime < self.last_dt {
                     panic!("History file entries are not stored in ascending order by time")
                 }
-                self.last_time = res.timestamp;
+                self.last_dt = res.datetime;
                 self.last_prl = self.prl_parser.next();
                 Some(res)
             }

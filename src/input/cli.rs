@@ -13,9 +13,9 @@ pub struct ArgumentParser {
     /// Sets the file each line of which should contain absolute paths to the TRD csv-files to use
     #[clap(short = 't', long = "--trd", required = true)]
     trd_files: String,
-    /// Sets the name of the timestamp columns in the input csv files
-    #[clap(long = "--ts-colname", default_value = ORDER_TIMESTAMP_COLNAME)]
-    order_timestamp_colname: String,
+    /// Sets the name of the datetime columns in the input csv files
+    #[clap(long = "--ts-colname", default_value = ORDER_DATETIME_COLNAME)]
+    order_datetime_colname: String,
     /// Sets the name of the order ID columns in the input csv files
     #[clap(long = "--id-colname", default_value = ORDER_ID_COLNAME)]
     order_id_colname: String,
@@ -42,7 +42,7 @@ pub struct ArgumentParser {
 impl InputInterface for ArgumentParser {
     fn get_prl_files(&self) -> &str { self.prl_files.as_str() }
     fn get_trd_files(&self) -> &str { self.trd_files.as_str() }
-    fn get_order_timestamp_colname(&self) -> &str { self.order_timestamp_colname.as_str() }
+    fn get_order_datetime_colname(&self) -> &str { self.order_datetime_colname.as_str() }
     fn get_order_id_colname(&self) -> &str { self.order_id_colname.as_str() }
     fn get_order_price_colname(&self) -> &str { self.order_price_colname.as_str() }
     fn get_order_size_colname(&self) -> &str { self.order_size_colname.as_str() }

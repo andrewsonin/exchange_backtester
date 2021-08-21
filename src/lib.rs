@@ -44,6 +44,7 @@ pub mod prelude {
         },
         types::{
             Date,
+            DateTime,
             Direction,
             Duration,
             NonZeroU64,
@@ -56,7 +57,6 @@ pub mod prelude {
             StdRng,
             Time,
             Timelike,
-            Timestamp,
         },
         utils::ExpectWith,
     };
@@ -107,10 +107,10 @@ mod integration {
         let history_parser = HistoryParser::new(&input);
         let mut trader = examples::VoidTrader;
 
-        let is_trading_time = |timestamp: Timestamp| {
-            match timestamp.date().cmp(&Date::from_ymd(2019, 3, 4)) {
+        let is_trading_dt = |datetime: DateTime| {
+            match datetime.date().cmp(&Date::from_ymd(2019, 3, 4)) {
                 Ordering::Less => { true }
-                Ordering::Equal => { timestamp.time() < Time::from_hms(12, 11, 12) }
+                Ordering::Equal => { datetime.time() < Time::from_hms(12, 11, 12) }
                 Ordering::Greater => { false }
             }
         };
@@ -118,7 +118,7 @@ mod integration {
         let exchange = ExchangeBuilder::new_debug::<false>(
             history_parser,
             &mut trader,
-            is_trading_time,
+            is_trading_dt,
         );
         let mut exchange = exchange
             .ob_level_subscription_depth(lags::constant::ONE_SECOND, 10)

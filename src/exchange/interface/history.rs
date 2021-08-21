@@ -89,7 +89,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         "{} :: \
                         remove_prl_entry :: ERROR in case of non-trading Trader :: \
                         Order with such ID {:?} does not exist at the OB level with corresponding price: {:?}",
-                        self.current_time,
+                        self.current_dt,
                         order_id,
                         price
                     )
@@ -104,7 +104,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                     "{} :: \
                     remove_prl_entry :: ERROR in case of non-trading Trader :: \
                     History order HashSet does not contain such ID: {:?}",
-                    self.current_time,
+                    self.current_dt,
                     order_id
                 )
             }
@@ -114,7 +114,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             eprintln!(
                 "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
                 :: History order has not been deleted: {:?}",
-                self.current_time,
+                self.current_dt,
                 order_id
             )
         }
@@ -138,7 +138,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         "{} \
                         :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                         :: OB level with such price does not exist: {:?}",
-                        self.current_time,
+                        self.current_dt,
                         price
                     );
                 }
@@ -159,7 +159,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         "{} \
                          :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
                          :: OB level does not contain history order with such ID: {:?}",
-                        self.current_time,
+                        self.current_dt,
                         order_id
                     );
                 }

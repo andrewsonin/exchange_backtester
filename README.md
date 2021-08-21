@@ -47,8 +47,8 @@ of `rustc`.
    impl HandleSubscriptionUpdates for CustomTrader
    {
        fn handle_order_book_snapshot(&mut self,
-                                     exchange_ts: Timestamp,
-                                     deliver_ts: Timestamp,
+                                     exchange_dt: Datetime,
+                                     deliver_dt: Datetime,
                                      ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
        {
            let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
@@ -59,30 +59,30 @@ of `rustc`.
                (Some((bid_price, _)), _) => { bid_price.to_f64(self.price_step) }
                (_, Some((ask_price, _))) => { ask_price.to_f64(self.price_step) }
                _ => {
-                   eprintln!("Timestamp: {}. Order book is empty", exchange_ts);
+                   eprintln!("Timestamp: {}. Order book is empty", exchange_dt);
                    return vec![];
                }
            };
-           println!("{},{}", exchange_ts, mid_price);
+           println!("{},{}", exchange_dt, mid_price);
            vec![]
        }
        fn handle_trade_info_update(&mut self,
-                                   exchange_ts: Timestamp,
-                                   deliver_ts: Timestamp,
+                                   exchange_dt: Datetime,
+                                   deliver_dt: Datetime,
                                    trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
        // Called when the time comes for the scheduled periodic trader wakeup
-       fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
+       fn handle_wakeup(&mut self, dt: Datetime) -> Vec<TraderRequest> { vec![] }
    }
    
    impl const Trader for CustomTrader {
-       fn exchange_to_trader_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
-       fn trader_to_exchange_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
+       fn exchange_to_trader_latency(rng: &mut StdRng, dt: Datetime) -> u64 { 0 }
+       fn trader_to_exchange_latency(rng: &mut StdRng, dt: Datetime) -> u64 { 0 }
        fn handle_exchange_reply(&mut self,
-                                exchange_ts: Timestamp,
-                                deliver_ts: Timestamp,
+                                exchange_dt: Datetime,
+                                deliver_dt: Datetime,
                                 reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
        // Called when the new trading day begins
-       fn set_new_trading_period(&mut self, ts: Timestamp) {}
+       fn set_new_trading_period(&mut self, dt: Datetime) {}
    }
    
    fn main() {
@@ -91,10 +91,10 @@ of `rustc`.
    
        let mut trader = CustomTrader { price_step: input.get_price_step() };
    
-       let is_trading_time = |timestamp: Timestamp| {
-           match timestamp.hour() {
+       let is_trading_dt = |datetime: Datetime| {
+           match datetime.hour() {
                7..=22 => { true }
-               23 => { timestamp.minute() < 50 }
+               23 => { datetime.minute() < 50 }
                _ => { false }
            }
        };
@@ -102,7 +102,7 @@ of `rustc`.
        let mut exchange = ExchangeBuilder::new::<false>(
            history_parser,
            &mut trader,
-           is_trading_time,
+           is_trading_dt,
        )
            .ob_level_subscription_depth(lags::constant::ONE_HOUR, 3)
            .trade_info_subscription(lags::constant::ONE_SECOND)
@@ -125,7 +125,7 @@ FLAGS:
 OPTIONS:
         --csv-sep <csv-sep>                          CSV-file separator [default: ,]
     -d, --datetime-format <datetime-format>
-            Sets the datetime format to parse timestamp columns [default: %Y-%m-%d %H:%M:%S%.f]
+            Sets the datetime format to parse datetime columns [default: %Y-%m-%d %H:%M:%S%.f]
 
         --bs-flag-colname <order-bs-flag-colname>
             Sets the name of the order buy-sell flag columns in the input csv files [default:
@@ -140,8 +140,8 @@ OPTIONS:
         --size-colname <order-size-colname>
             Sets the name of the order size columns in the input csv files [default: SIZE]
 
-        --ts-colname <order-timestamp-colname>
-            Sets the name of the timestamp columns in the input csv files [default: Timestamp]
+        --ts-colname <order-datetime-colname>
+            Sets the name of the datetime columns in the input csv files [default: Timestamp]
 
         --price-step <price-step>                    Price step [default: 0.0025]
     -p, --prl <prl-files>
@@ -248,7 +248,7 @@ pub enum HistoryEventBody {
 
 pub struct HistoryEvent
 {
-    pub timestamp: Timestamp,
+    pub datetime: DateTime,
     pub event: HistoryEventBody,
 }
 ```
@@ -258,7 +258,7 @@ pub struct HistoryEvent
 - `Price` does not wrap `f64`, but `u64` deliberately — in order to get rid of potential problems associated with the
   loss of precision in floating point calculations. Actual price `f64` value is just a `Price` inner `u64` multiplied by
   the `--price-step` in the upper example.
-- `Timestamp` here is just a naming alias to the `chrono::NaiveDateTime`.
+- `DateTime` here is just a naming alias to the `chrono::NaiveDateTime`.
 
 #### Example
 
@@ -278,8 +278,8 @@ struct CustomTrader;
 
 impl HandleSubscriptionUpdates for CustomTrader {
    fn handle_order_book_snapshot(&mut self,
-                                 exchange_ts: Timestamp,
-                                 deliver_ts: Timestamp,
+                                 exchange_dt: DateTime,
+                                 deliver_dt: DateTime,
                                  ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
    {
       let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
@@ -291,26 +291,26 @@ impl HandleSubscriptionUpdates for CustomTrader {
          (_, Some((ask_price, _))) => { ask_price.to_f64(PRICE_STEP) }
          _ => { return vec![]; }
       };
-      println!("{},{}", exchange_ts, mid_price);
+      println!("{},{}", exchange_dt, mid_price);
       vec![]
    }
    fn handle_trade_info_update(&mut self,
-                               exchange_ts: Timestamp,
-                               deliver_ts: Timestamp,
+                               exchange_dt: DateTime,
+                               deliver_dt: DateTime,
                                trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
    // Called when the time comes for the scheduled periodic trader wakeup
-   fn handle_wakeup(&mut self, ts: Timestamp) -> Vec<TraderRequest> { vec![] }
+   fn handle_wakeup(&mut self, dt: DateTime) -> Vec<TraderRequest> { vec![] }
 }
 
 impl const Trader for CustomTrader {
-   fn exchange_to_trader_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
-   fn trader_to_exchange_latency(rng: &mut StdRng, ts: Timestamp) -> u64 { 0 }
+   fn exchange_to_trader_latency(rng: &mut StdRng, dt: DateTime) -> u64 { 0 }
+   fn trader_to_exchange_latency(rng: &mut StdRng, dt: DateTime) -> u64 { 0 }
    fn handle_exchange_reply(&mut self,
-                            exchange_ts: Timestamp,
-                            deliver_ts: Timestamp,
+                            exchange_dt: DateTime,
+                            deliver_dt: DateTime,
                             reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
    // Called when the new trading day begins
-   fn set_new_trading_period(&mut self, ts: Timestamp) {}
+   fn set_new_trading_period(&mut self, dt: DateTime) {}
 }
 
 #[derive(Default)]
@@ -321,14 +321,14 @@ struct HistoryHolder {
 impl HistoryHolder {
    fn add_prl(&mut self, ts: &str, size: u64, dir: Direction, price: f64, order_id: u64) {
       self.history.push_back(HistoryEvent {
-         timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
+         datetime: DateTime::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
          event: HistoryEventBody::PRL(Size(size), dir, Price::from_f64(price, PRICE_STEP), OrderID(order_id)),
       })
    }
 
    fn add_trd(&mut self, ts: &str, size: u64, dir: Direction) {
       self.history.push_back(HistoryEvent {
-         timestamp: Timestamp::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
+         datetime: DateTime::parse_from_str(ts, DATETIME_FORMAT).unwrap(),
          event: HistoryEventBody::TRD(Size(size), dir),
       })
    }
@@ -340,8 +340,8 @@ impl EventProcessor for HistoryHolder {
    }
 }
 
-fn is_trading_time(timestamp: Timestamp) -> bool {
-   match timestamp.hour() {
+fn is_trading_dt(datetime: DateTime) -> bool {
+   match datetime.hour() {
       7..=19 => { true }
       _ => { false }
    }
@@ -349,18 +349,18 @@ fn is_trading_time(timestamp: Timestamp) -> bool {
 
 fn main() {
    let mut history = HistoryHolder::default();
-   history.add_prl("2020-03-03 12:22:22.31",  3, Direction::Buy,  12.0025, 1);
+   history.add_prl("2020-03-03 12:22:22.31", 3, Direction::Buy, 12.0025, 1);
    history.add_prl("2020-03-03 14:11:26.33", 22, Direction::Sell, 12.0075, 2);
-   history.add_trd("2020-03-03 16:11:26.33",  2, Direction::Sell);
-   history.add_prl("2020-03-03 16:11:26.33",  1, Direction::Buy,  12.0025, 1);
-   history.add_trd("2020-03-03 18:24:00",     1, Direction::Sell);
-   history.add_prl("2020-03-03 18:24:00",     0, Direction::Buy,  12.0025, 1);
+   history.add_trd("2020-03-03 16:11:26.33", 2, Direction::Sell);
+   history.add_prl("2020-03-03 16:11:26.33", 1, Direction::Buy, 12.0025, 1);
+   history.add_trd("2020-03-03 18:24:00", 1, Direction::Sell);
+   history.add_prl("2020-03-03 18:24:00", 0, Direction::Buy, 12.0025, 1);
 
    let mut trader = CustomTrader;
    let mut exchange = ExchangeBuilder::new::<false>(
       history,
       &mut trader,
-      is_trading_time,
+      is_trading_dt,
    )
            .ob_level_subscription_depth(lags::constant::ONE_HOUR, 1);
 
@@ -426,8 +426,7 @@ The exchange notifies the trader about the events happened in two ways.
    }
    ```
 2. By sending subscription updates. This information refers to the state of the market as a whole. Trader can subscribe
-   to this information using special chained initialization methods of the `Exchange`. Here
-   they are:
+   to this information using special chained initialization methods of the `Exchange`. Here they are:
 
    ```rust
    fn ob_level_subscription_depth<G: NanoSecondGenerator>(self, ns_gen: G, depth: usize) -> Exchange;
@@ -439,28 +438,29 @@ The exchange notifies the trader about the events happened in two ways.
    fn with_periodic_wakeup<G: NanoSecondGenerator>(self, ns_gen: G) -> Exchange;
    ```
     - `ob_level_subscription_depth` subscribe the trader to the order book snapshots which depth is limited to
-      the `depth` parameter. Information comes at intervals, the duration of which is determined by the `ns_gen` structure.
+      the `depth` parameter. Information comes at intervals, the duration of which is determined by the `ns_gen`
+      structure.
     - `ob_level_subscription_full` does the same, but the depth is not limited.
     - `trade_info_subscription` subscribe the trader to the candles that contain the information of the executed trades
-       after the last `trade_info_subscription` call.
+      after the last `trade_info_subscription` call.
     - `with_periodic_wakeup` just ping the trader and allow him to send the list of instances of `TraderRequest`
       every time interval, the duration of which is determined by the `ns_gen` structure.
 
 Exchange replies, subscription updates and trader requests does not come immediately after sending. The lag in
 nanoseconds is set by `exchange_to_trader_latency` (for exchange replies and subscription updates)
-and `trader_to_exchange_latency` (for trader requests) methods in the `Trader` trait. Note that they can use the exchange random number generator `rng` and can return
-different values each time which makes it possible to simulate a latency noise. Also note that trader wakeups do not suffer
-from `exchange_to_trader_latency`.
+and `trader_to_exchange_latency` (for trader requests) methods in the `Trader` trait. Note that they can use the
+exchange random number generator `rng` and can return different values each time which makes it possible to simulate a
+latency noise. Also note that trader wakeups do not suffer from `exchange_to_trader_latency`.
 
 As you can see, the `ns_gen` structure must implement `NanoSecondGenerator` trait that looks like the following:
 
 ```rust
 pub trait NanoSecondGenerator {
-    fn gen_ns(&mut self, rng: &mut StdRng, ts: Timestamp) -> NonZeroU64;
+    fn gen_ns(&mut self, rng: &mut StdRng, dt: DateTime) -> NonZeroU64;
 }
 ```
 
-`gen_ns` method here receives the exchange random number generator `rng` and the timestamp of the event `ts`.
+`gen_ns` method here receives the exchange random number generator `rng` and the datetime of the event `ts`.
 
 ### 3. ExchangeBuilder
 
@@ -476,7 +476,7 @@ fn new<const TRD_UPDATES_OB: bool>(
 )
     where EP: EventProcessor,
           T: Trader,
-          TradingTimeCriterion: Fn(Timestamp) -> bool
+          TradingTimeCriterion: Fn(DateTime) -> bool
 ```
 
 As you can see, the first argument should implement the `EventProcessor` processor trait, the second one should

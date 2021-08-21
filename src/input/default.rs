@@ -1,4 +1,4 @@
-pub const ORDER_TIMESTAMP_COLNAME: &str = "Timestamp";
+pub const ORDER_DATETIME_COLNAME: &str = "Timestamp";
 pub const ORDER_ID_COLNAME: &str = "ORDER_ID";
 pub const ORDER_PRICE_COLNAME: &str = "PRICE";
 pub const ORDER_SIZE_COLNAME: &str = "SIZE";

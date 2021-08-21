@@ -5,7 +5,7 @@ use crate::history::parser::EventProcessor;
 use crate::lags::interface::NanoSecondGenerator;
 use crate::order::MarketOrder;
 use crate::trader::Trader;
-use crate::types::{Direction, OrderID, Price, StdRng, Timestamp};
+use crate::types::{DateTime, Direction, OrderID, Price, StdRng};
 
 pub(crate) mod interface;
 pub(crate) mod types;
@@ -39,9 +39,9 @@ pub struct Exchange<
 
     executed_trades: TradesHistory,
 
-    current_time: Timestamp,
+    current_dt: DateTime,
     exchange_closed: bool,
-    is_trading_time: fn(Timestamp) -> bool,
+    is_trading_dt: fn(DateTime) -> bool,
     rng: StdRng,
 
     // Subscriptions

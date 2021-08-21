@@ -140,7 +140,7 @@ OPTIONS:
         --size-colname <order-size-colname>
             Sets the name of the order size columns in the input csv files [default: SIZE]
 
-        --ts-colname <order-datetime-colname>
+        --dt-colname <order-datetime-colname>
             Sets the name of the datetime columns in the input csv files [default: Timestamp]
 
         --price-step <price-step>                    Price step [default: 0.0025]
@@ -480,8 +480,8 @@ fn new<const TRD_UPDATES_OB: bool>(
 ```
 
 As you can see, the first argument should implement the `EventProcessor` processor trait, the second one should
-implement the `Trader` trait and the last one should be a function that says whether the given `Timestamp` is a trading
-time.
+implement the `Trader` trait and the last one should be a function that says whether the given `DateTime` is a trading
+datetime.
 
 `TRD_UPDATES_OB` template parameter is responsible for the behavior of the order book after receiving `TRD` events. If
 it is set to `false` the order book will change or delete traded limit order only if the `PRL` entry corresponding to

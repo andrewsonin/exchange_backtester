@@ -14,7 +14,7 @@ pub struct ArgumentParser {
     #[clap(short = 't', long = "--trd", required = true)]
     trd_files: String,
     /// Sets the name of the datetime columns in the input csv files
-    #[clap(long = "--ts-colname", default_value = ORDER_DATETIME_COLNAME)]
+    #[clap(long = "--dt-colname", default_value = ORDER_DATETIME_COLNAME)]
     order_datetime_colname: String,
     /// Sets the name of the order ID columns in the input csv files
     #[clap(long = "--id-colname", default_value = ORDER_ID_COLNAME)]

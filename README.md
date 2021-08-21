@@ -47,8 +47,8 @@ of `rustc`.
    impl HandleSubscriptionUpdates for CustomTrader
    {
        fn handle_order_book_snapshot(&mut self,
-                                     exchange_dt: Datetime,
-                                     deliver_dt: Datetime,
+                                     exchange_dt: DateTime,
+                                     deliver_dt: DateTime,
                                      ob_snapshot: OrderBookSnapshot) -> Vec<TraderRequest>
        {
            let mid_price = match (ob_snapshot.bids.first(), ob_snapshot.asks.first())
@@ -67,22 +67,22 @@ of `rustc`.
            vec![]
        }
        fn handle_trade_info_update(&mut self,
-                                   exchange_dt: Datetime,
-                                   deliver_dt: Datetime,
+                                   exchange_dt: DateTime,
+                                   deliver_dt: DateTime,
                                    trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
        // Called when the time comes for the scheduled periodic trader wakeup
-       fn handle_wakeup(&mut self, dt: Datetime) -> Vec<TraderRequest> { vec![] }
+       fn handle_wakeup(&mut self, dt: DateTime) -> Vec<TraderRequest> { vec![] }
    }
    
    impl const Trader for CustomTrader {
-       fn exchange_to_trader_latency(rng: &mut StdRng, dt: Datetime) -> u64 { 0 }
-       fn trader_to_exchange_latency(rng: &mut StdRng, dt: Datetime) -> u64 { 0 }
+       fn exchange_to_trader_latency(rng: &mut StdRng, dt: DateTime) -> u64 { 0 }
+       fn trader_to_exchange_latency(rng: &mut StdRng, dt: DateTime) -> u64 { 0 }
        fn handle_exchange_reply(&mut self,
-                                exchange_dt: Datetime,
-                                deliver_dt: Datetime,
+                                exchange_dt: DateTime,
+                                deliver_dt: DateTime,
                                 reply: ExchangeReply) -> Vec<TraderRequest> { vec![] }
        // Called when the new trading day begins
-       fn set_new_trading_period(&mut self, dt: Datetime) {}
+       fn set_new_trading_period(&mut self, dt: DateTime) {}
    }
    
    fn main() {
@@ -91,7 +91,7 @@ of `rustc`.
    
        let mut trader = CustomTrader { price_step: input.get_price_step() };
    
-       let is_trading_dt = |datetime: Datetime| {
+       let is_trading_dt = |datetime: DateTime| {
            match datetime.hour() {
                7..=22 => { true }
                23 => { datetime.minute() < 50 }

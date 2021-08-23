@@ -348,6 +348,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         };
         if intersection_size < order.get_order_size() {
             if intersection_size != Size(0) {
+                *order.mut_order_size() -= intersection_size;
                 let order = MarketOrder::new(order.get_order_id(), intersection_size, order.get_order_direction());
                 match COME_FROM {
                     OrderOrigin::History => {

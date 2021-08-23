@@ -32,7 +32,7 @@ impl HandleSubscriptionUpdates for CustomTrader<'_> {
         write!(self.file_to_write, "{},{:.5}\n", exchange_dt, mid_price).unwrap();
         vec![]
     }
-    fn handle_trade_info_update(&mut self, _: DateTime, _: DateTime, _: Vec<ExecutedTrade>) -> Vec<TraderRequest> {
+    fn handle_trade_info_update(&mut self, _: DateTime, _: DateTime, _: Vec<OrderBookDiff>) -> Vec<TraderRequest> {
         vec![]
     }
     fn handle_wakeup(&mut self, _: DateTime) -> Vec<TraderRequest> {

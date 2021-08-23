@@ -1,4 +1,4 @@
-use crate::exchange::trades::history::ExecutedTrade;
+use crate::exchange::trades::history::OrderBookDiff;
 use crate::order::{LimitOrder, MarketOrder};
 use crate::trader::subscriptions::OrderBookSnapshot;
 use crate::types::{OrderID, Price, Size};
@@ -44,7 +44,7 @@ pub enum InabilityToCancelReason {
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum SubscriptionUpdate {
     OrderBook(OrderBookSnapshot),
-    TradeInfo(Vec<ExecutedTrade>),
+    TradeInfo(Vec<OrderBookDiff>),
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]

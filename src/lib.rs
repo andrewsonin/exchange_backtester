@@ -20,7 +20,7 @@ pub mod lags;
 
 pub mod prelude {
     pub use crate::{
-        exchange::{Exchange, interface::public::ExchangeBuilder, trades::history::ExecutedTrade},
+        exchange::{Exchange, interface::public::ExchangeBuilder, trades::history::OrderBookDiff},
         history::{
             parser::{HistoryParser, interface::EventProcessor},
             types::{HistoryEvent, HistoryEventBody},

@@ -39,7 +39,7 @@ pub mod prelude {
         order::{LimitOrder, MarketOrder},
         trader::{
             examples,
-            subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot, TradeInfo},
+            subscriptions::{HandleSubscriptionUpdates, OrderBookSnapshot},
             Trader,
         },
         types::{

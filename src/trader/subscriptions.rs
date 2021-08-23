@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::exchange::trades::history::OrderBookDiff;
 use crate::message::TraderRequest;
 use crate::types::{DateTime, Price, Size};
@@ -20,25 +18,4 @@ pub trait HandleSubscriptionUpdates {
 pub struct OrderBookSnapshot {
     pub bids: Vec<(Price, Size)>,
     pub asks: Vec<(Price, Size)>,
-}
-
-#[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct TradeInfo {
-    pub open: Price,
-    pub high: Price,
-    pub low: Price,
-    pub close: Price,
-
-    pub buy_volume: Size,
-    pub sell_volume: Size,
-
-    pub price_to_volume_sorted: PriceToVolumeSorted,
-}
-
-pub type PriceToVolumeSorted = BTreeMap<Price, TradeVolumesBin>;
-
-#[derive(Debug, Default, Eq, PartialEq, Ord, PartialOrd)]
-pub struct TradeVolumesBin {
-    pub buy_aggressors: Size,
-    pub sell_aggressors: Size,
 }

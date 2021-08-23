@@ -69,7 +69,7 @@ of `rustc`.
        fn handle_trade_info_update(&mut self,
                                    exchange_dt: DateTime,
                                    deliver_dt: DateTime,
-                                   trade_info: Vec<ExecutedTrade>) -> Vec<TraderRequest> { vec![] }
+                                   trade_info: Vec<OrderBookDiff>) -> Vec<TraderRequest> { vec![] }
        // Called when the time comes for the scheduled periodic trader wakeup
        fn handle_wakeup(&mut self, dt: DateTime) -> Vec<TraderRequest> { vec![] }
    }

@@ -23,22 +23,22 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
     fn new<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_time: fn(DateTime) -> bool,
+        is_trading_datetime: fn(DateTime) -> bool,
     ) -> Exchange<'a, T, E, VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen, false, TRD_UPDATES_OB, false, false, false> {
-        Exchange::build(event_processor, trader, is_trading_time)
+        Exchange::build(event_processor, trader, is_trading_datetime)
     }
 
     pub
     fn new_debug<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_time: fn(DateTime) -> bool,
+        is_trading_datetime: fn(DateTime) -> bool,
     ) -> Exchange<
         'a, T, E,
         VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
         true, TRD_UPDATES_OB, false, false, false
     > {
-        Exchange::build(event_processor, trader, is_trading_time)
+        Exchange::build(event_processor, trader, is_trading_datetime)
     }
 }
 

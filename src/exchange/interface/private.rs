@@ -626,7 +626,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 }
                 self.cleanup::<true>();
                 self.trader.exchange_closed(self.current_dt);
-                if self.history_events_in_queue == 0 {
+                if !self.has_history_events_in_queue {
                     return Err(());
                 }
                 let date = self.current_dt.date();

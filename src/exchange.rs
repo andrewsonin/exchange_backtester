@@ -27,7 +27,7 @@ pub struct Exchange<
 {
     event_queue: EventQueue,
     event_processor: E,
-    history_events_in_queue: u64,
+    has_history_events_in_queue: bool,
     history_order_ids: HashSet<OrderID>,
 
     bids: LinkedList<OrderBookLevel>,

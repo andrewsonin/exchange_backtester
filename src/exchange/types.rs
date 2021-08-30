@@ -26,7 +26,7 @@ pub(crate) struct OrderBookEntry {
 }
 
 #[derive(Default)]
-pub(crate) struct EventQueue(BinaryHeap<Reverse<Event>>);
+pub(crate) struct EventQueue(pub(crate) BinaryHeap<Reverse<Event>>);
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) struct Event {

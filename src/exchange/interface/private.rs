@@ -630,22 +630,18 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                     return Err(());
                 }
                 let date = self.current_dt.date();
-                while let Some(event) = self.event_queue.pop() {
-                    let event_date = event.datetime.date();
-                    if event_date > date {
-                        if let EventBody::HistoryEvent(_) = event.body {
-                            self.event_queue.extend([
+                for event in self.event_queue.0.iter() {
+                    let event_dt = event.0.datetime;
+                    if event_dt.date() > date {
+                        if let EventBody::HistoryEvent(_) = event.0.body {
+                            self.event_queue.push(
                                 Event {
-                                    datetime: (self.get_next_open_dt)(event.datetime),
+                                    datetime: (self.get_next_open_dt)(event_dt),
                                     body: EventBody::ExchangeOpen,
                                 },
-                                event
-                            ]);
+                            );
                             break;
                         }
-                    }
-                    if let Err(_) = self.process_next_event(event) {
-                        return Err(());
                     }
                 }
             }

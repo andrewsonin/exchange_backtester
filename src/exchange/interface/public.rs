@@ -146,7 +146,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -167,7 +167,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -196,7 +196,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -217,7 +217,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -246,7 +246,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -267,7 +267,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -296,7 +296,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -317,7 +317,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
-            has_history_events_in_queue: history_events_in_queue,
+            has_history_events_in_queue,
             history_order_ids,
             bids,
             asks,

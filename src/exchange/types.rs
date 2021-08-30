@@ -42,6 +42,8 @@ pub(crate) enum EventBody {
     SubscriptionUpdate(SubscriptionUpdate, DateTime),
     SubscriptionSchedule(SubscriptionSchedule),
     TraderWakeUp,
+    ExchangeOpen,
+    ExchangeClosed,
 }
 
 impl Extend<Event> for EventQueue {
@@ -53,15 +55,24 @@ impl Extend<Event> for EventQueue {
 }
 
 impl EventQueue {
-    pub(crate) fn push(&mut self, item: Event) {
-        self.0.push(Reverse(item))
+    pub(crate) fn is_empty(&self) -> bool { self.0.is_empty() }
+
+    pub(crate) fn peek(&self) -> Option<&Event> {
+        match self.0.peek() {
+            Some(Reverse(event)) => { Some(event) }
+            _ => { None }
+        }
     }
 
     pub(crate) fn pop(&mut self) -> Option<Event> {
         match self.0.pop() {
             Some(Reverse(event)) => { Some(event) }
-            None => { None }
+            _ => { None }
         }
+    }
+
+    pub(crate) fn push(&mut self, item: Event) {
+        self.0.push(Reverse(item))
     }
 
     pub(crate) fn schedule_reply_for_trader<T: Trader>(&mut self,

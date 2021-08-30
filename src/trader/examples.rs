@@ -21,5 +21,6 @@ impl const Trader for VoidTrader {
     fn exchange_to_trader_latency(_: &mut StdRng, _: DateTime) -> u64 { 0 }
     fn trader_to_exchange_latency(_: &mut StdRng, _: DateTime) -> u64 { 0 }
     fn handle_exchange_reply(&mut self, _: DateTime, _: DateTime, _: ExchangeReply) -> Vec<TraderRequest> { vec![] }
-    fn set_new_trading_period(&mut self, _: DateTime) {}
+    fn exchange_open(&mut self, _: DateTime) {}
+    fn exchange_closed(&mut self, _: DateTime) {}
 }

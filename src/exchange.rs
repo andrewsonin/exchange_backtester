@@ -27,6 +27,7 @@ pub struct Exchange<
 {
     event_queue: EventQueue,
     event_processor: E,
+    history_events_in_queue: u64,
     history_order_ids: HashSet<OrderID>,
 
     bids: LinkedList<OrderBookLevel>,
@@ -41,7 +42,8 @@ pub struct Exchange<
 
     current_dt: DateTime,
     exchange_closed: bool,
-    is_trading_dt: fn(DateTime) -> bool,
+    get_next_open_dt: fn(DateTime) -> DateTime,
+    get_next_close_dt: fn(DateTime) -> DateTime,
     rng: StdRng,
 
     // Subscriptions

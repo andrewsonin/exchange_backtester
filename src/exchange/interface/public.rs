@@ -1,6 +1,6 @@
 use std::num::NonZeroU64;
 
-use crate::exchange::Exchange;
+use crate::exchange::{Exchange, types::{Event, EventBody}};
 use crate::history::parser::EventProcessor;
 use crate::lags::interface::NanoSecondGenerator;
 use crate::trader::Trader;
@@ -23,22 +23,24 @@ impl<'a, T: Trader, E: EventProcessor> ExchangeBuilder<T, E>
     fn new<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_datetime: fn(DateTime) -> bool,
+        get_next_open_dt: fn(DateTime) -> DateTime,
+        get_next_close_dt: fn(DateTime) -> DateTime,
     ) -> Exchange<'a, T, E, VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen, false, TRD_UPDATES_OB, false, false, false> {
-        Exchange::build(event_processor, trader, is_trading_datetime)
+        Exchange::build(event_processor, trader, get_next_open_dt, get_next_close_dt)
     }
 
     pub
     fn new_debug<const TRD_UPDATES_OB: bool>(
         event_processor: E,
         trader: &'a mut T,
-        is_trading_datetime: fn(DateTime) -> bool,
+        get_next_open_dt: fn(DateTime) -> DateTime,
+        get_next_close_dt: fn(DateTime) -> DateTime,
     ) -> Exchange<
         'a, T, E,
         VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
         true, TRD_UPDATES_OB, false, false, false
     > {
-        Exchange::build(event_processor, trader, is_trading_datetime)
+        Exchange::build(event_processor, trader, get_next_open_dt, get_next_close_dt)
     }
 }
 
@@ -57,7 +59,10 @@ Exchange<
     DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
 >
 {
-    fn build(mut event_processor: E, trader: &'a mut T, is_trading_datetime: fn(DateTime) -> bool) -> Exchange<
+    fn build(mut event_processor: E,
+             trader: &'a mut T,
+             get_next_open_dt: fn(DateTime) -> DateTime,
+             get_next_close_dt: fn(DateTime) -> DateTime, ) -> Exchange<
         'a, T, E,
         VoidNanoSecGen, VoidNanoSecGen, VoidNanoSecGen,
         DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION
@@ -70,6 +75,7 @@ Exchange<
         let mut exchange = Exchange {
             event_queue: Default::default(),
             event_processor,
+            history_events_in_queue: 1,
             history_order_ids: Default::default(),
             bids: Default::default(),
             asks: Default::default(),
@@ -80,7 +86,8 @@ Exchange<
             executed_trades: Default::default(),
             current_dt: first_event.datetime,
             exchange_closed: true,
-            is_trading_dt: is_trading_datetime,
+            get_next_open_dt,
+            get_next_close_dt,
             rng: StdRng::from_entropy(),
             ob_depth_and_interval_ns: (0, VoidNanoSecGen),
             trade_info_interval_ns: VoidNanoSecGen,
@@ -114,8 +121,19 @@ Exchange<
 {
     pub
     fn run_trades(&mut self) {
+        if let Some(first_event) = self.event_queue.peek() {
+            let first_event_dt = first_event.datetime;
+            self.event_queue.push(
+                Event {
+                    datetime: (self.get_next_open_dt)(first_event_dt),
+                    body: EventBody::ExchangeOpen,
+                }
+            )
+        }
         while let Some(event) = self.event_queue.pop() {
-            self.process_next_event(event)
+            if let Err(_) = self.process_next_event(event) {
+                return;
+            }
         }
     }
 
@@ -128,6 +146,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -138,7 +157,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             trade_info_interval_ns,
             wakeup,
@@ -147,6 +167,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -157,7 +178,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns: (depth, ns_gen),
             trade_info_interval_ns,
@@ -174,6 +196,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -184,7 +207,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             trade_info_interval_ns,
             wakeup,
@@ -193,6 +217,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -203,7 +228,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns: (usize::MAX, ns_gen),
             trade_info_interval_ns,
@@ -220,6 +246,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -230,7 +257,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns,
             wakeup,
@@ -239,6 +267,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -249,7 +278,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns: ns_gen,
@@ -266,6 +296,7 @@ Exchange<
         let Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -276,7 +307,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns,
@@ -285,6 +317,7 @@ Exchange<
         Exchange {
             event_queue,
             event_processor,
+            history_events_in_queue,
             history_order_ids,
             bids,
             asks,
@@ -295,7 +328,8 @@ Exchange<
             executed_trades,
             current_dt: current_time,
             exchange_closed,
-            is_trading_dt: is_trading_time,
+            get_next_open_dt,
+            get_next_close_dt,
             rng,
             ob_depth_and_interval_ns,
             trade_info_interval_ns,

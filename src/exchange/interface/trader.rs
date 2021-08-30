@@ -23,8 +23,10 @@ impl<
 Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: DateTime) {
+        if self.exchange_closed {
+            return;
+        }
         let deliver_ts = self.current_dt;
-
         let trader_reactions = match update {
             SubscriptionUpdate::OrderBook(ob_snapshot) => {
                 self.trader.handle_order_book_snapshot(exchange_ts, deliver_ts, ob_snapshot)

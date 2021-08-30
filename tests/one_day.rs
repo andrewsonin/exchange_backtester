@@ -46,7 +46,8 @@ impl const Trader for CustomTrader<'_> {
     fn handle_exchange_reply(&mut self, _: DateTime, _: DateTime, _: ExchangeReply) -> Vec<TraderRequest> {
         vec![]
     }
-    fn set_new_trading_period(&mut self, _: DateTime) {}
+    fn exchange_open(&mut self, _: DateTime) {}
+    fn exchange_closed(&mut self, _: DateTime) {}
 }
 
 fn main() {
@@ -69,18 +70,18 @@ fn main() {
         file_to_write: &mut buffer,
     };
 
-    let is_trading_dt = |datetime: DateTime| {
-        match datetime.hour() {
-            7..=22 => { true }
-            23 => { datetime.minute() < 50 }
-            _ => { false }
-        }
+    let get_next_open_dt = |datetime: DateTime| {
+        datetime.date().and_hms(7, 0, 0)
+    };
+    let get_next_close_dt = |datetime: DateTime| {
+        datetime.date().and_hms(23, 50, 0)
     };
 
     ExchangeBuilder::new::<false>(
         history_parser,
         &mut trader,
-        is_trading_dt,
+        get_next_open_dt,
+        get_next_close_dt,
     )
         .ob_level_subscription_depth(lags::constant::ONE_HOUR, 1)
         .run_trades();
@@ -90,21 +91,21 @@ fn main() {
     assert_eq!(
         file_content,
         "Timestamp,MidPrice\n\
-        2021-06-01 08:00:00.039,73.32250\n\
-        2021-06-01 09:00:00.039,73.31750\n\
-        2021-06-01 10:00:00.039,73.18250\n\
-        2021-06-01 11:00:00.039,73.27000\n\
-        2021-06-01 12:00:00.039,73.33625\n\
-        2021-06-01 13:00:00.039,73.48625\n\
-        2021-06-01 14:00:00.039,73.44875\n\
-        2021-06-01 15:00:00.039,73.54250\n\
-        2021-06-01 16:00:00.039,73.59750\n\
-        2021-06-01 17:00:00.039,73.45500\n\
-        2021-06-01 18:00:00.039,73.48875\n\
-        2021-06-01 19:00:00.039,73.45250\n\
-        2021-06-01 20:00:00.039,73.53500\n\
-        2021-06-01 21:00:00.039,73.55375\n\
-        2021-06-01 22:00:00.039,73.49000\n\
-        2021-06-01 23:00:00.039,73.50500\n"
+        2021-06-01 08:00:00,73.32250\n\
+        2021-06-01 09:00:00,73.31750\n\
+        2021-06-01 10:00:00,73.18250\n\
+        2021-06-01 11:00:00,73.27125\n\
+        2021-06-01 12:00:00,73.33625\n\
+        2021-06-01 13:00:00,73.48875\n\
+        2021-06-01 14:00:00,73.44875\n\
+        2021-06-01 15:00:00,73.54250\n\
+        2021-06-01 16:00:00,73.59750\n\
+        2021-06-01 17:00:00,73.45500\n\
+        2021-06-01 18:00:00,73.48875\n\
+        2021-06-01 19:00:00,73.45250\n\
+        2021-06-01 20:00:00,73.53500\n\
+        2021-06-01 21:00:00,73.55375\n\
+        2021-06-01 22:00:00,73.49000\n\
+        2021-06-01 23:00:00,73.50500\n"
     )
 }

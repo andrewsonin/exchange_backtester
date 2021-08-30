@@ -64,7 +64,6 @@ pub mod prelude {
 
 #[cfg(test)]
 mod integration {
-    use std::cmp::Ordering;
     use std::fs::File;
     use std::io::Write;
     use std::path::Path;
@@ -107,18 +106,18 @@ mod integration {
         let history_parser = HistoryParser::new(&input);
         let mut trader = examples::VoidTrader;
 
-        let is_trading_dt = |datetime: DateTime| {
-            match datetime.date().cmp(&Date::from_ymd(2019, 3, 4)) {
-                Ordering::Less => { true }
-                Ordering::Equal => { datetime.time() < Time::from_hms(12, 11, 12) }
-                Ordering::Greater => { false }
-            }
+        let get_next_open_dt = |datetime: DateTime| {
+            datetime.date().and_hms(12, 3, 1)
+        };
+        let get_next_close_dt = |datetime: DateTime| {
+            datetime.date().and_hms(12, 11, 12)
         };
 
         let exchange = ExchangeBuilder::new_debug::<false>(
             history_parser,
             &mut trader,
-            is_trading_dt,
+            get_next_open_dt,
+            get_next_close_dt,
         );
         let mut exchange = exchange
             .ob_level_subscription_depth(lags::constant::ONE_SECOND, 10)

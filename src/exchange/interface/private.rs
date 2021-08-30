@@ -44,7 +44,7 @@ impl<
 >
 Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
-    fn cleanup<const END_OF_TRADES: bool>(&mut self, dt: DateTime) {
+    fn cleanup<const END_OF_TRADES: bool>(&mut self) {
         self.history_order_ids.clear();
         self.bids.clear();
         self.asks.clear();
@@ -56,7 +56,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 .chain(self.trader_pending_limit_orders.keys().map(|id| *id))
             {
                 let reply = OrderCancelled(id, CancellationReason::ExchangeClosed);
-                self.event_queue.schedule_reply_for_trader::<T>(reply, dt, &mut self.rng);
+                self.event_queue.schedule_reply_for_trader::<T>(reply, self.current_dt, &mut self.rng);
             }
             self.trader_pending_market_orders.clear();
             self.trader_pending_limit_orders.clear();
@@ -421,49 +421,40 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
     }
 
-    pub(crate) fn is_now_trading_time(&self) -> bool {
-        (self.is_trading_dt)(self.current_dt)
-    }
+    pub(crate) fn is_now_trading_time(&self) -> bool { !self.exchange_closed }
 
-    fn set_new_trading_period(&mut self)
+    fn schedule_subscriptions_when_exchange_open(&mut self)
     {
         if OB_SUBSCRIPTION {
             let (_, ns_gen) = &mut self.ob_depth_and_interval_ns;
             let next_time = self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64);
-            if (self.is_trading_dt)(next_time) {
-                self.event_queue.push(
-                    Event {
-                        datetime: next_time,
-                        body: EventBody::SubscriptionSchedule(OrderBook),
-                    }
-                )
-            }
+            self.event_queue.push(
+                Event {
+                    datetime: next_time,
+                    body: EventBody::SubscriptionSchedule(OrderBook),
+                }
+            )
         }
         if TRD_SUBSCRIPTION {
             let ns_gen = &mut self.trade_info_interval_ns;
             let next_time = self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64);
-            if (self.is_trading_dt)(next_time) {
-                self.event_queue.push(
-                    Event {
-                        datetime: next_time,
-                        body: EventBody::SubscriptionSchedule(TradeInfo),
-                    }
-                )
-            }
+            self.event_queue.push(
+                Event {
+                    datetime: next_time,
+                    body: EventBody::SubscriptionSchedule(TradeInfo),
+                }
+            )
         }
         if WAKEUP_SUBSCRIPTION {
             let ns_gen = &mut self.wakeup;
             let next_time = self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64);
-            if (self.is_trading_dt)(next_time) {
-                self.event_queue.push(
-                    Event {
-                        datetime: next_time,
-                        body: EventBody::TraderWakeUp,
-                    }
-                )
-            }
+            self.event_queue.push(
+                Event {
+                    datetime: next_time,
+                    body: EventBody::TraderWakeUp,
+                }
+            )
         }
-        self.trader.set_new_trading_period(self.current_dt);
     }
 
     fn handle_subscription_schedule(&mut self, subscription_type: SubscriptionSchedule) {
@@ -492,15 +483,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                             ),
                         }
                     );
-                    let next_time = self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64);
-                    if (self.is_trading_dt)(next_time) {
-                        self.event_queue.push(
-                            Event {
-                                datetime: next_time,
-                                body: EventBody::SubscriptionSchedule(OrderBook),
-                            }
-                        )
-                    }
+                    self.event_queue.push(
+                        Event {
+                            datetime: self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64),
+                            body: EventBody::SubscriptionSchedule(OrderBook),
+                        }
+                    )
                 } else {
                     unreachable!()
                 }
@@ -519,15 +507,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                             ),
                         }
                     );
-                    let next_time = self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64);
-                    if (self.is_trading_dt)(next_time) {
-                        self.event_queue.push(
-                            Event {
-                                datetime: next_time,
-                                body: EventBody::SubscriptionSchedule(TradeInfo),
-                            }
-                        )
-                    }
+                    self.event_queue.push(
+                        Event {
+                            datetime: self.current_dt + Duration::nanoseconds(ns_gen.gen_ns(&mut self.rng, self.current_dt).get() as i64),
+                            body: EventBody::SubscriptionSchedule(TradeInfo),
+                        }
+                    )
                 } else {
                     unreachable!()
                 }
@@ -594,37 +579,20 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         }
                     )
             );
-            let next_wakeup_time = current_time + Duration::nanoseconds(ns_gen.gen_ns(rng, self.current_dt).get() as i64);
-            if (self.is_trading_dt)(next_wakeup_time) {
-                self.event_queue.push(
-                    Event {
-                        datetime: next_wakeup_time,
-                        body: EventBody::TraderWakeUp,
-                    }
-                )
-            }
+            self.event_queue.push(
+                Event {
+                    datetime: current_time + Duration::nanoseconds(ns_gen.gen_ns(rng, self.current_dt).get() as i64),
+                    body: EventBody::TraderWakeUp,
+                }
+            )
         } else {
             unreachable!()
         }
     }
 
     pub(crate)
-    fn process_next_event(&mut self, event: Event) {
-        let prev_time = self.current_dt;
+    fn process_next_event(&mut self, event: Event) -> Result<(), ()> {
         self.current_dt = event.datetime;
-        if self.exchange_closed {
-            if self.is_now_trading_time() {
-                if DEBUG {
-                    eprintln!("{} :: process_next_event :: CLEANUP", event.datetime)
-                }
-                self.cleanup::<false>(prev_time);
-                self.set_new_trading_period();
-                self.exchange_closed = false
-            }
-        } else if !self.is_now_trading_time() {
-            self.cleanup::<true>(prev_time);
-            self.exchange_closed = true
-        }
         if DEBUG {
             eprintln!("{} :: process_next_event :: EVENT :: {:?}", event.datetime, event.body)
         }
@@ -632,9 +600,56 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             EventBody::HistoryEvent(event) => { self.handle_history_event(event) }
             EventBody::TraderRequest(request) => { self.handle_trader_request(request) }
             EventBody::ExchangeReply(reply, exchange_ts) => { self.handle_exchange_reply(reply, exchange_ts) }
-            EventBody::SubscriptionUpdate(update, exchange_ts) => { self.handle_subscription_update(update, exchange_ts) }
+            EventBody::SubscriptionUpdate(update, exchange_ts) => {
+                self.handle_subscription_update(update, exchange_ts)
+            }
             EventBody::SubscriptionSchedule(subscription_type) => { self.handle_subscription_schedule(subscription_type) }
             EventBody::TraderWakeUp => { self.handle_trader_wakeup() }
-        }
+            EventBody::ExchangeOpen => {
+                if !self.event_queue.is_empty() {
+                    self.exchange_closed = false;
+                    self.cleanup::<false>();
+                    self.schedule_subscriptions_when_exchange_open();
+                    self.trader.exchange_open(self.current_dt);
+                    self.event_queue.push(
+                        Event {
+                            datetime: (self.get_next_close_dt)(self.current_dt),
+                            body: EventBody::ExchangeClosed,
+                        }
+                    );
+                }
+            }
+            EventBody::ExchangeClosed => {
+                self.exchange_closed = true;
+                if DEBUG {
+                    eprintln!("{} :: process_next_event :: CLEANUP", event.datetime)
+                }
+                self.cleanup::<true>();
+                self.trader.exchange_closed(self.current_dt);
+                if self.history_events_in_queue == 0 {
+                    return Err(());
+                }
+                let date = self.current_dt.date();
+                while let Some(event) = self.event_queue.pop() {
+                    let event_date = event.datetime.date();
+                    if event_date > date {
+                        if let EventBody::HistoryEvent(_) = event.body {
+                            self.event_queue.extend([
+                                Event {
+                                    datetime: (self.get_next_open_dt)(event.datetime),
+                                    body: EventBody::ExchangeOpen,
+                                },
+                                event
+                            ]);
+                            break;
+                        }
+                    }
+                    if let Err(_) = self.process_next_event(event) {
+                        return Err(());
+                    }
+                }
+            }
+        };
+        return Ok(());
     }
 }

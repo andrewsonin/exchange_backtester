@@ -45,6 +45,8 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
         if let Some(event) = self.event_processor.yield_next_event() {
             self.event_queue.schedule_history_event(event)
+        } else {
+            self.history_events_in_queue -= 1;
         }
     }
 

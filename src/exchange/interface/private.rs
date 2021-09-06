@@ -653,7 +653,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                             } else {
                                 self.event_queue.push(
                                     Event {
-                                        datetime: (self.get_next_open_dt)(self.current_dt),
+                                        datetime: (self.get_next_open_dt)(event_dt),
                                         body: EventBody::ExchangeOpenTryout,
                                     }
                                 )

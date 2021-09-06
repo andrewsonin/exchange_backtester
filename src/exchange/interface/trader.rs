@@ -130,6 +130,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                         }
                         side_cursor.move_next()
                     }
+                    value.remove();
                     ExchangeReply::OrderCancelled(order_id, CancellationReason::TraderRequested)
                 }
                 _ => {

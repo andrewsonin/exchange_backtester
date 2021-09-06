@@ -9,7 +9,7 @@ use crate::types::{DateTime, SeedableRng, StdRng};
 pub struct VoidNanoSecGen;
 
 impl NanoSecondGenerator for VoidNanoSecGen {
-    fn gen_ns(&mut self, _: &mut StdRng, _: DateTime) -> NonZeroU64 { unreachable!() }
+    fn gen_ns(&mut self, _: &mut StdRng, _: DateTime) -> Option<NonZeroU64> { unreachable!() }
 }
 
 pub struct ExchangeBuilder<T, E> {
@@ -126,7 +126,7 @@ Exchange<
             self.event_queue.push(
                 Event {
                     datetime: (self.get_next_open_dt)(first_event_dt),
-                    body: EventBody::ExchangeOpen,
+                    body: EventBody::ExchangeOpenTryout,
                 }
             )
         }

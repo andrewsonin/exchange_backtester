@@ -43,8 +43,10 @@ pub enum InabilityToCancelReason {
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum SubscriptionUpdate {
+    ExchangeOpen,
     OrderBook(OrderBookSnapshot),
     TradeInfo(Vec<OrderBookDiff>),
+    ExchangeClosed,
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]

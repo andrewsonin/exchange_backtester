@@ -12,6 +12,6 @@ pub trait Trader: HandleSubscriptionUpdates {
                              exchange_dt: DateTime,
                              deliver_dt: DateTime,
                              reply: ExchangeReply) -> Vec<TraderRequest>;
-    fn exchange_open(&mut self, dt: DateTime);
-    fn exchange_closed(&mut self, dt: DateTime);
+    fn exchange_open(&mut self, exchange_dt: DateTime, deliver_dt: DateTime);
+    fn exchange_closed(&mut self, exchange_dt: DateTime, deliver_dt: DateTime);
 }

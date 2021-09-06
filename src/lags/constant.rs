@@ -4,7 +4,7 @@ use crate::types::{DateTime, NonZeroU64, StdRng};
 pub struct ConstNanoSecondGenerator(pub NonZeroU64);
 
 impl const NanoSecondGenerator for ConstNanoSecondGenerator {
-    fn gen_ns(&mut self, _: &mut StdRng, _: DateTime) -> NonZeroU64 { self.0 }
+    fn gen_ns(&mut self, _: &mut StdRng, _: DateTime) -> Option<NonZeroU64> { Some(self.0) }
 }
 
 const _ONE_MICROSECOND: NonZeroU64 = NonZeroU64::new(1000).unwrap();

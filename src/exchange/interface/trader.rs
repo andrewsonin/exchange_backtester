@@ -23,9 +23,6 @@ impl<
 Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: DateTime) {
-        if self.exchange_closed {
-            return;
-        }
         let deliver_ts = self.current_dt;
         let trader_reactions = match update {
             SubscriptionUpdate::OrderBook(ob_snapshot) => {
@@ -33,6 +30,14 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             }
             SubscriptionUpdate::TradeInfo(trade_info) => {
                 self.trader.handle_trade_info_update(exchange_ts, deliver_ts, trade_info)
+            }
+            SubscriptionUpdate::ExchangeOpen => {
+                self.trader.exchange_open(exchange_ts, deliver_ts);
+                return;
+            }
+            SubscriptionUpdate::ExchangeClosed => {
+                self.trader.exchange_closed(exchange_ts, deliver_ts);
+                return;
             }
         };
         let rng = &mut self.rng;

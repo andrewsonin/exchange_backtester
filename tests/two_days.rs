@@ -46,8 +46,8 @@ impl const Trader for CustomTrader<'_> {
     fn handle_exchange_reply(&mut self, _: DateTime, _: DateTime, _: ExchangeReply) -> Vec<TraderRequest> {
         vec![]
     }
-    fn exchange_open(&mut self, _: DateTime) {}
-    fn exchange_closed(&mut self, _: DateTime) {}
+    fn exchange_open(&mut self, _: DateTime, _: DateTime) {}
+    fn exchange_closed(&mut self, _: DateTime, _: DateTime) {}
 }
 
 fn main() {
@@ -55,11 +55,10 @@ fn main() {
         .join("tests")
         .join("data")
         .join("integration")
-        .join("one_day");
+        .join("two_days");
     let input = StaticInput::new()
         .with_prl_files(path.join("PRL.txt").to_str().unwrap())
-        .with_trd_files(path.join("TRD.txt").to_str().unwrap())
-        .with_datetime_format("%d/%m/%Y %H:%M:%S%.f");
+        .with_trd_files(path.join("TRD.txt").to_str().unwrap());
     let history_parser = HistoryParser::new(&input);
 
     let mut buffer = BufWriter::new(File::create(path.join("output.csv")).unwrap());
@@ -106,6 +105,22 @@ fn main() {
         2021-06-01 20:00:00,73.53500\n\
         2021-06-01 21:00:00,73.55375\n\
         2021-06-01 22:00:00,73.49000\n\
-        2021-06-01 23:00:00,73.50500\n"
+        2021-06-01 23:00:00,73.50500\n\
+        2021-06-02 08:00:00,73.58500\n\
+        2021-06-02 09:00:00,73.59625\n\
+        2021-06-02 10:00:00,73.62250\n\
+        2021-06-02 11:00:00,73.44375\n\
+        2021-06-02 12:00:00,73.52875\n\
+        2021-06-02 13:00:00,73.52625\n\
+        2021-06-02 14:00:00,73.51375\n\
+        2021-06-02 15:00:00,73.47625\n\
+        2021-06-02 16:00:00,73.44875\n\
+        2021-06-02 17:00:00,73.34375\n\
+        2021-06-02 18:00:00,73.24625\n\
+        2021-06-02 19:00:00,73.21000\n\
+        2021-06-02 20:00:00,73.18875\n\
+        2021-06-02 21:00:00,73.21750\n\
+        2021-06-02 22:00:00,73.16875\n\
+        2021-06-02 23:00:00,73.13875\n"
     )
 }

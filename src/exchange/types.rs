@@ -36,13 +36,13 @@ pub(crate) struct Event {
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum EventBody {
+    ExchangeOpenTryout,
     HistoryEvent(HistoryEventBody),
     TraderRequest(TraderRequest),
     ExchangeReply(ExchangeReply, DateTime),
     SubscriptionUpdate(SubscriptionUpdate, DateTime),
     SubscriptionSchedule(SubscriptionSchedule),
     TraderWakeUp,
-    ExchangeOpen,
     ExchangeClosed,
 }
 
@@ -55,8 +55,6 @@ impl Extend<Event> for EventQueue {
 }
 
 impl EventQueue {
-    pub(crate) fn is_empty(&self) -> bool { self.0.is_empty() }
-
     pub(crate) fn peek(&self) -> Option<&Event> {
         match self.0.peek() {
             Some(Reverse(event)) => { Some(event) }

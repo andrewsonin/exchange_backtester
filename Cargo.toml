@@ -13,5 +13,5 @@ derive_more = "^0.99.16"
 rand = "^0.8.4"
 
 [[test]]
-name = "one_day"
+name = "two_days"
 harness = false

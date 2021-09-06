@@ -16,4 +16,4 @@ Cargo.lock
 /tests/data/*/*/TRD.txt
 
 # Directories that contain private or large data files
-/tests/data/integration/one_day/
+/tests/data/integration/two_days/

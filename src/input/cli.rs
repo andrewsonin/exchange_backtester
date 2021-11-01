@@ -1,11 +1,10 @@
-pub use clap::{AppSettings, Clap};
+pub use clap::{AppSettings, Parser};
 
 use crate::input::{default::*, InputInterface};
 
 /// Exchange backtesting framework
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = "0.0.1", author = "Andrew Sonin <sonin.cel@yandex.ru>")]
-#[clap(setting = AppSettings::ColoredHelp)]
 pub struct ArgumentParser {
     /// Sets the file each line of which should contain absolute paths to the PRL csv-files to use
     #[clap(short = 'p', long = "--prl", required = true)]

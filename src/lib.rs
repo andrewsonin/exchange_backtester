@@ -26,7 +26,7 @@ pub mod prelude {
             types::{HistoryEvent, HistoryEventBody},
         },
         input,
-        input::{cli::{ArgumentParser, Clap}, inline::StaticInput, InputInterface},
+        input::{cli::{ArgumentParser, Parser}, inline::StaticInput, InputInterface},
         lags,
         lags::interface::NanoSecondGenerator,
         message::{

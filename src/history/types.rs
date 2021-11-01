@@ -59,7 +59,7 @@ impl HistoryEvent
                 || format!("Cannot parse to NaiveDateTime: {}. Datetime format used: {}", datetime, dt_format)
             ),
             Size(
-                u64::from_str(size).expect_with(
+                i64::from_str(size).expect_with(
                     || format!("Cannot parse to u64: {}", size)
                 )
             ),
@@ -90,7 +90,7 @@ impl HistoryEvent
                 || format!("Cannot parse to NaiveDateTime: {}. Datetime format used: {}", datetime, dt_format)
             ),
             Size(
-                u64::from_str(size).expect_with(
+                i64::from_str(size).expect_with(
                     || format!("Cannot parse to u64: {}", size)
                 )
             ),

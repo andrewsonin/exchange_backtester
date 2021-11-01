@@ -8,13 +8,13 @@ pub use rand::{Rng, rngs::StdRng, SeedableRng};
 use crate::utils::ExpectWith;
 
 #[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
-pub struct Price(pub u64);
+pub struct Price(pub i64);
 
 #[derive(Debug, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sub, AddAssign, SubAssign)]
 pub struct OrderID(pub u64);
 
 #[derive(Debug, Default, PartialOrd, PartialEq, Ord, Eq, Hash, Clone, Copy, Add, Sum, Sub, AddAssign, SubAssign)]
-pub struct Size(pub u64);
+pub struct Size(pub i64);
 
 #[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone, Copy)]
 pub enum Direction {
@@ -45,7 +45,7 @@ impl Price
                 price_step
             )
         }
-        Price(rounded_price_steps as u64)
+        Price(rounded_price_steps as i64)
     }
 
     pub
@@ -54,6 +54,6 @@ impl Price
     }
 }
 
-impl const Into<u64> for Price {
-    fn into(self) -> u64 { self.0 }
+impl const Into<i64> for Price {
+    fn into(self) -> i64 { self.0 }
 }

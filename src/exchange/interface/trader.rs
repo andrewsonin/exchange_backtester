@@ -23,20 +23,20 @@ impl<
 Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUBSCRIPTION, TRD_SUBSCRIPTION, WAKEUP_SUBSCRIPTION>
 {
     pub(crate) fn handle_subscription_update(&mut self, update: SubscriptionUpdate, exchange_ts: DateTime) {
-        let deliver_ts = self.current_dt;
+        let delivery_dt = self.current_dt;
         let trader_reactions = match update {
             SubscriptionUpdate::OrderBook(ob_snapshot) => {
-                self.trader.handle_order_book_snapshot(exchange_ts, deliver_ts, ob_snapshot)
+                self.trader.handle_order_book_snapshot(exchange_ts, delivery_dt, ob_snapshot)
             }
             SubscriptionUpdate::TradeInfo(trade_info) => {
-                self.trader.handle_trade_info_update(exchange_ts, deliver_ts, trade_info)
+                self.trader.handle_trade_info_update(exchange_ts, delivery_dt, trade_info)
             }
             SubscriptionUpdate::ExchangeOpen => {
-                self.trader.exchange_open(exchange_ts, deliver_ts);
+                self.trader.exchange_open(exchange_ts, delivery_dt);
                 return;
             }
             SubscriptionUpdate::ExchangeClosed => {
-                self.trader.exchange_closed(exchange_ts, deliver_ts);
+                self.trader.exchange_closed(exchange_ts, delivery_dt);
                 return;
             }
         };
@@ -46,7 +46,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 .into_iter()
                 .map(
                     |request| Event {
-                        datetime: deliver_ts + Duration::nanoseconds(T::trader_to_exchange_latency(rng, deliver_ts) as i64),
+                        datetime: delivery_dt + Duration::nanoseconds(T::trader_to_exchange_latency(rng, delivery_dt) as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )

@@ -10,8 +10,8 @@ pub trait Trader: HandleSubscriptionUpdates {
     fn trader_to_exchange_latency(rng: &mut StdRng, dt: DateTime) -> u64;
     fn handle_exchange_reply(&mut self,
                              exchange_dt: DateTime,
-                             deliver_dt: DateTime,
+                             delivery_dt: DateTime,
                              reply: ExchangeReply) -> Vec<TraderRequest>;
-    fn exchange_open(&mut self, exchange_dt: DateTime, deliver_dt: DateTime);
-    fn exchange_closed(&mut self, exchange_dt: DateTime, deliver_dt: DateTime);
+    fn exchange_open(&mut self, exchange_dt: DateTime, delivery_dt: DateTime);
+    fn exchange_closed(&mut self, exchange_dt: DateTime, delivery_dt: DateTime);
 }

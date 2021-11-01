@@ -7,11 +7,11 @@ use crate::input::{default::*, InputInterface};
 #[clap(version = "0.0.1", author = "Andrew Sonin <sonin.cel@yandex.ru>")]
 pub struct ArgumentParser {
     /// Sets the file each line of which should contain absolute paths to the PRL csv-files to use
-    #[clap(short = 'p', long = "--prl", required = true)]
-    prl_files: String,
+    #[clap(short = 'o', long = "--obd", required = true)]
+    ob_diff_history_files: String,
     /// Sets the file each line of which should contain absolute paths to the TRD csv-files to use
     #[clap(short = 't', long = "--trd", required = true)]
-    trd_files: String,
+    trade_history_files: String,
     /// Sets the name of the datetime columns in the input csv files
     #[clap(long = "--dt-colname", default_value = ORDER_DATETIME_COLNAME)]
     order_datetime_colname: String,
@@ -39,8 +39,8 @@ pub struct ArgumentParser {
 }
 
 impl InputInterface for ArgumentParser {
-    fn get_prl_files(&self) -> &str { self.prl_files.as_str() }
-    fn get_trd_files(&self) -> &str { self.trd_files.as_str() }
+    fn get_ob_diff_history_files(&self) -> &str { self.ob_diff_history_files.as_str() }
+    fn get_trade_history_files(&self) -> &str { self.trade_history_files.as_str() }
     fn get_order_datetime_colname(&self) -> &str { self.order_datetime_colname.as_str() }
     fn get_order_id_colname(&self) -> &str { self.order_id_colname.as_str() }
     fn get_order_price_colname(&self) -> &str { self.order_price_colname.as_str() }

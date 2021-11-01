@@ -57,8 +57,8 @@ fn main() {
         .join("integration")
         .join("two_days");
     let input = StaticInput::new()
-        .with_prl_files(path.join("PRL.txt").to_str().unwrap())
-        .with_trd_files(path.join("TRD.txt").to_str().unwrap());
+        .with_ob_diff_history_files(path.join("PRL.txt").to_str().unwrap())
+        .with_trade_history_files(path.join("TRD.txt").to_str().unwrap());
     let history_parser = HistoryParser::new(&input);
 
     let mut buffer = BufWriter::new(File::create(path.join("output.csv")).unwrap());

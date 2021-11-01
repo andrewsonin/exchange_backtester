@@ -4,23 +4,23 @@ use std::io::{BufRead, BufReader};
 
 use csv::ReaderBuilder;
 
-use crate::history::types::{HistoryEvent, PRLColumnIndexInfo, TRDColumnIndexInfo};
+use crate::history::types::{HistoryEvent, OBDiffHistoryColumnIndexInfo, TradeHistoryColumnIndexInfo};
 use crate::input::InputInterface;
 use crate::types::{DateTime, Direction, OrderID, Price, Size};
 use crate::utils::ExpectWith;
 
 pub(crate)
-struct PRLReader<'a, ParsingInfo: InputInterface>
+struct OBDiffHistoryReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
     buffered_entries: VecDeque<(DateTime, Size, Direction, Price, OrderID)>,
     args: &'a ParsingInfo,
 }
 
-impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
+impl<ParsingInfo: InputInterface> OBDiffHistoryReader<'_, ParsingInfo>
 {
     pub(crate)
-    fn new<'a>(files_to_parse: &str, args: &'a ParsingInfo) -> PRLReader<'a, ParsingInfo>
+    fn new<'a>(files_to_parse: &str, args: &'a ParsingInfo) -> OBDiffHistoryReader<'a, ParsingInfo>
     {
         let files_to_parse: VecDeque<String> = {
             let file = File::open(files_to_parse).expect_with(
@@ -28,7 +28,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
             );
             BufReader::new(&file).lines().filter_map(|line| line.ok()).collect()
         };
-        let mut res = PRLReader {
+        let mut res = OBDiffHistoryReader {
             files_to_parse,
             buffered_entries: VecDeque::new(),
             args,
@@ -67,7 +67,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
         let cur_file_content = read_to_string(&file_to_read).expect_with(
             || format!("Cannot read the following file: {}", file_to_read)
         );
-        let col_idx_info = PRLColumnIndexInfo::new_for_csv(&file_to_read, self.args);
+        let col_idx_info = OBDiffHistoryColumnIndexInfo::new_for_csv(&file_to_read, self.args);
         let price_step = self.args.get_price_step();
         let datetime_format = self.args.get_datetime_format();
         self.buffered_entries.extend(
@@ -78,7 +78,7 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
                 .zip(2..)
                 .map(
                     |(record, row)|
-                        HistoryEvent::parse_prl(
+                        HistoryEvent::parse_ob_diff(
                             record.expect_with(
                                 || format!("Cannot parse {}-th CSV-record for the file: {}", row, file_to_read)
                             ),
@@ -93,17 +93,17 @@ impl<ParsingInfo: InputInterface> PRLReader<'_, ParsingInfo>
 }
 
 pub(crate)
-struct TRDReader<'a, ParsingInfo: InputInterface>
+struct TradeHistoryReader<'a, ParsingInfo: InputInterface>
 {
     files_to_parse: VecDeque<String>,
     buffered_entries: VecDeque<(DateTime, Size, Direction, OrderID)>,
     args: &'a ParsingInfo,
 }
 
-impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
+impl<ParsingInfo: InputInterface> TradeHistoryReader<'_, ParsingInfo>
 {
     pub(crate)
-    fn new<'a>(files_to_parse: &str, args: &'a ParsingInfo) -> TRDReader<'a, ParsingInfo>
+    fn new<'a>(files_to_parse: &str, args: &'a ParsingInfo) -> TradeHistoryReader<'a, ParsingInfo>
     {
         let files_to_parse: VecDeque<String> = {
             let file = File::open(files_to_parse).expect_with(
@@ -111,7 +111,7 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
             );
             BufReader::new(&file).lines().filter_map(|line| line.ok()).collect()
         };
-        let mut res = TRDReader {
+        let mut res = TradeHistoryReader {
             files_to_parse,
             buffered_entries: VecDeque::new(),
             args,
@@ -150,7 +150,7 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
         let cur_file_content = read_to_string(&file_to_read).expect_with(
             || format!("Cannot read the following file: {}", file_to_read)
         );
-        let col_idx_info = TRDColumnIndexInfo::new_for_csv(&file_to_read, self.args);
+        let col_idx_info = TradeHistoryColumnIndexInfo::new_for_csv(&file_to_read, self.args);
         let datetime_format = self.args.get_datetime_format();
         self.buffered_entries.extend(
             ReaderBuilder::new()
@@ -160,7 +160,7 @@ impl<ParsingInfo: InputInterface> TRDReader<'_, ParsingInfo>
                 .zip(2..)
                 .map(
                     |(record, row)|
-                        HistoryEvent::parse_trd(
+                        HistoryEvent::parser_trade(
                             record.expect_with(
                                 || format!("Cannot parse {}-th CSV-record for the file: {}", row, file_to_read)
                             ),

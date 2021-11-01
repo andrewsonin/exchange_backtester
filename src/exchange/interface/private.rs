@@ -533,14 +533,14 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
     }
 
     fn handle_exchange_reply(&mut self, reply: ExchangeReply, exchange_dt: DateTime) {
-        let deliver_ts = self.current_dt;
-        let trader_reactions = self.trader.handle_exchange_reply(exchange_dt, deliver_ts, reply);
+        let delivery_dt = self.current_dt;
+        let trader_reactions = self.trader.handle_exchange_reply(exchange_dt, delivery_dt, reply);
         let rng = &mut self.rng;
         self.event_queue.extend(
             trader_reactions.into_iter()
                 .map(
                     |request| Event {
-                        datetime: deliver_ts + Duration::nanoseconds(T::trader_to_exchange_latency(rng, deliver_ts) as i64),
+                        datetime: delivery_dt + Duration::nanoseconds(T::trader_to_exchange_latency(rng, delivery_dt) as i64),
                         body: EventBody::TraderRequest(request),
                     }
                 )

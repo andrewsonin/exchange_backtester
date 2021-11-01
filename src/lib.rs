@@ -96,8 +96,8 @@ mod integration {
             .expect_with(|| format!("Unable to write to {:?}", prl_files));
 
         StaticInput::new()
-            .with_prl_files(prl_files.to_str().unwrap())
-            .with_trd_files(trd_files.to_str().unwrap())
+            .with_ob_diff_history_files(prl_files.to_str().unwrap())
+            .with_trade_history_files(trd_files.to_str().unwrap())
     }
 
     #[test]

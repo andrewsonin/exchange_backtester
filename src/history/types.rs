@@ -14,8 +14,8 @@ pub(crate) enum OrderOrigin {
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Clone, Copy, Debug)]
 pub enum HistoryEventBody {
-    TRD(Size, Direction),
-    PRL(Size, Direction, Price, OrderID),
+    Trade(Size, Direction),
+    OrderBookDiff(Size, Direction, Price, OrderID),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -25,7 +25,7 @@ pub struct HistoryEvent
     pub event: HistoryEventBody,
 }
 
-pub(crate) struct PRLColumnIndexInfo
+pub(crate) struct OBDiffHistoryColumnIndexInfo
 {
     price_idx: usize,
     size_idx: usize,
@@ -34,7 +34,7 @@ pub(crate) struct PRLColumnIndexInfo
     order_id_idx: usize,
 }
 
-pub(crate) struct TRDColumnIndexInfo
+pub(crate) struct TradeHistoryColumnIndexInfo
 {
     size_idx: usize,
     datetime_idx: usize,
@@ -44,10 +44,10 @@ pub(crate) struct TRDColumnIndexInfo
 
 impl HistoryEvent
 {
-    pub(crate) fn parse_prl(record: StringRecord,
-                            col_idx_info: &PRLColumnIndexInfo,
-                            price_step: f64,
-                            dt_format: &str) -> (DateTime, Size, Direction, Price, OrderID)
+    pub(crate) fn parse_ob_diff(record: StringRecord,
+                                col_idx_info: &OBDiffHistoryColumnIndexInfo,
+                                price_step: f64,
+                                dt_format: &str) -> (DateTime, Size, Direction, Price, OrderID)
     {
         let datetime = &record[col_idx_info.datetime_idx];
         let order_id = &record[col_idx_info.order_id_idx];
@@ -77,9 +77,9 @@ impl HistoryEvent
         )
     }
 
-    pub(crate) fn parse_trd(record: StringRecord,
-                            col_idx_info: &TRDColumnIndexInfo,
-                            dt_format: &str) -> (DateTime, Size, Direction, OrderID)
+    pub(crate) fn parser_trade(record: StringRecord,
+                               col_idx_info: &TradeHistoryColumnIndexInfo,
+                               dt_format: &str) -> (DateTime, Size, Direction, OrderID)
     {
         let datetime = &record[col_idx_info.datetime_idx];
         let order_id = &record[col_idx_info.order_id_idx];
@@ -108,10 +108,10 @@ impl HistoryEvent
     }
 }
 
-impl PRLColumnIndexInfo
+impl OBDiffHistoryColumnIndexInfo
 {
     pub(crate)
-    fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> PRLColumnIndexInfo
+    fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> OBDiffHistoryColumnIndexInfo
         where ParsingInfo: InputInterface
     {
         let mut order_id_idx: Option<usize> = None;
@@ -162,7 +162,7 @@ impl PRLColumnIndexInfo
                 buy_sell_flag_idx = Some(i)
             }
         };
-        PRLColumnIndexInfo {
+        OBDiffHistoryColumnIndexInfo {
             price_idx: price_idx.expect_with(
                 || format!("Cannot find {} column in the CSV-file: {}", price_colname, path)
             ),
@@ -182,10 +182,10 @@ impl PRLColumnIndexInfo
     }
 }
 
-impl TRDColumnIndexInfo
+impl TradeHistoryColumnIndexInfo
 {
     pub(crate)
-    fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> TRDColumnIndexInfo
+    fn new_for_csv<ParsingInfo>(path: &str, args: &ParsingInfo) -> TradeHistoryColumnIndexInfo
         where ParsingInfo: InputInterface
     {
         let mut order_id_idx: Option<usize> = None;
@@ -229,7 +229,7 @@ impl TRDColumnIndexInfo
                 buy_sell_flag_idx = Some(i)
             }
         };
-        TRDColumnIndexInfo {
+        TradeHistoryColumnIndexInfo {
             size_idx: size_idx.expect_with(
                 || format!("Cannot find {} column in the CSV-file: {}", size_colname, path)
             ),

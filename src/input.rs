@@ -3,8 +3,8 @@ pub mod inline;
 pub mod default;
 
 pub trait InputInterface {
-    fn get_prl_files(&self) -> &str;
-    fn get_trd_files(&self) -> &str;
+    fn get_ob_diff_history_files(&self) -> &str;
+    fn get_trade_history_files(&self) -> &str;
     fn get_order_datetime_colname(&self) -> &str;
     fn get_order_id_colname(&self) -> &str;
     fn get_order_price_colname(&self) -> &str;

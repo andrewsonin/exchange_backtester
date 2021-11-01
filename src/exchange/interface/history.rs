@@ -38,10 +38,10 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
     fn handle_history_event(&mut self, event: HistoryEventBody)
     {
         match event {
-            HistoryEventBody::PRL(size, direction, price, order_id) => {
-                self.handle_prl_event(size, direction, price, order_id)
+            HistoryEventBody::OrderBookDiff(size, direction, price, order_id) => {
+                self.handle_ob_diff_event(size, direction, price, order_id)
             }
-            HistoryEventBody::TRD(size, direction) => {
+            HistoryEventBody::Trade(size, direction) => {
                 self.handle_trd_event(size, direction)
             }
         }
@@ -52,12 +52,12 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
     }
 
-    fn handle_prl_event(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
+    fn handle_ob_diff_event(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
     {
         if size == Size(0) {
-            self.remove_prl_entry(direction, price, order_id)
+            self.remove_ob_entry(direction, price, order_id)
         } else if self.history_order_ids.contains(&order_id) {
-            self.update_traded_prl_entry(size, direction, price, order_id)
+            self.update_traded_ob_entry(size, direction, price, order_id)
         } else {
             self.insert_limit_order::<LimitOrder, { OrderOrigin::History }>(
                 LimitOrder::new(order_id, size, direction, price)
@@ -66,7 +66,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
     }
 
-    fn remove_prl_entry(&mut self, direction: Direction, price: Price, order_id: OrderID)
+    fn remove_ob_entry(&mut self, direction: Direction, price: Price, order_id: OrderID)
     {
         let mut side_cursor = match direction {
             Direction::Buy => { self.bids.cursor_front_mut() }
@@ -91,7 +91,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 if DEBUG {
                     eprintln!(
                         "{} :: \
-                        remove_prl_entry :: ERROR in case of non-trading Trader :: \
+                        remove_ob_entry :: ERROR in case of non-trading Trader :: \
                         Order with such ID {:?} does not exist at the OB level with corresponding price: {:?}",
                         self.current_dt,
                         order_id,
@@ -106,7 +106,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
             if !self.history_order_ids.remove(&order_id) && DEBUG {
                 eprintln!(
                     "{} :: \
-                    remove_prl_entry :: ERROR in case of non-trading Trader :: \
+                    remove_ob_entry :: ERROR in case of non-trading Trader :: \
                     History order HashSet does not contain such ID: {:?}",
                     self.current_dt,
                     order_id
@@ -116,7 +116,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
         if DEBUG {
             eprintln!(
-                "{} :: remove_prl_entry :: ERROR in case of non-trading Trader \
+                "{} :: remove_ob_entry :: ERROR in case of non-trading Trader \
                 :: History order has not been deleted: {:?}",
                 self.current_dt,
                 order_id
@@ -124,7 +124,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
         }
     }
 
-    fn update_traded_prl_entry(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
+    fn update_traded_ob_entry(&mut self, size: Size, direction: Direction, price: Price, order_id: OrderID)
     {
         let side = match direction {
             Direction::Buy => { &mut self.bids }
@@ -140,7 +140,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 if DEBUG {
                     eprintln!(
                         "{} \
-                        :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
+                        :: update_traded_ob_entry :: ERROR in case of non-trading Trader \
                         :: OB level with such price does not exist: {:?}",
                         self.current_dt,
                         price
@@ -161,7 +161,7 @@ Exchange<'_, T, E, ObLagGen, TrdLagGen, WkpLagGen, DEBUG, TRD_UPDATES_OB, OB_SUB
                 if DEBUG {
                     eprintln!(
                         "{} \
-                         :: update_traded_prl_entry :: ERROR in case of non-trading Trader \
+                         :: update_traded_ob_entry :: ERROR in case of non-trading Trader \
                          :: OB level does not contain history order with such ID: {:?}",
                         self.current_dt,
                         order_id

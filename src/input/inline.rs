@@ -1,8 +1,8 @@
 use crate::input::{default::*, InputInterface};
 
 pub struct StaticInput {
-    prl_files: String,
-    trd_files: String,
+    ob_diff_history_files: String,
+    trade_history_files: String,
     order_datetime_colname: String,
     order_id_colname: String,
     order_price_colname: String,
@@ -16,8 +16,8 @@ pub struct StaticInput {
 impl Default for StaticInput {
     fn default() -> Self {
         StaticInput {
-            prl_files: String::new(),
-            trd_files: String::new(),
+            ob_diff_history_files: String::new(),
+            trade_history_files: String::new(),
             order_datetime_colname: ORDER_DATETIME_COLNAME.to_string(),
             order_id_colname: ORDER_ID_COLNAME.to_string(),
             order_price_colname: ORDER_PRICE_COLNAME.to_string(),
@@ -33,12 +33,12 @@ impl Default for StaticInput {
 impl StaticInput {
     pub fn new() -> Self { Default::default() }
 
-    pub fn with_prl_files(mut self, prl_files: &str) -> Self {
-        self.prl_files = prl_files.to_string();
+    pub fn with_ob_diff_history_files(mut self, ob_diff_history_files: &str) -> Self {
+        self.ob_diff_history_files = ob_diff_history_files.to_string();
         self
     }
-    pub fn with_trd_files(mut self, trd_files: &str) -> Self {
-        self.trd_files = trd_files.to_string();
+    pub fn with_trade_history_files(mut self, trade_history_files: &str) -> Self {
+        self.trade_history_files = trade_history_files.to_string();
         self
     }
     pub fn with_dt_colname(mut self, order_datetime_colname: &str) -> Self {
@@ -76,17 +76,17 @@ impl StaticInput {
 }
 
 impl InputInterface for StaticInput {
-    fn get_prl_files(&self) -> &str {
-        if self.prl_files.is_empty() {
-            panic!("get_prl_files returned an empty string. Consider setting PRL files with the method 'with_prl_files' before usage")
+    fn get_ob_diff_history_files(&self) -> &str {
+        if self.ob_diff_history_files.is_empty() {
+            panic!("get_ob_diff_history_files returned an empty string. Consider setting order book diff history files with the method 'with_ob_diff_history_files' before usage")
         }
-        self.prl_files.as_str()
+        self.ob_diff_history_files.as_str()
     }
-    fn get_trd_files(&self) -> &str {
-        if self.trd_files.is_empty() {
-            panic!("get_trd_files returned an empty string. Consider setting TRD files with the method 'with_trd_files' before usage")
+    fn get_trade_history_files(&self) -> &str {
+        if self.trade_history_files.is_empty() {
+            panic!("get_trade_history_files returned an empty string. Consider setting trade history files with the method 'with_trade_history_files' before usage")
         }
-        self.trd_files.as_str()
+        self.trade_history_files.as_str()
     }
     fn get_order_datetime_colname(&self) -> &str { self.order_datetime_colname.as_str() }
     fn get_order_id_colname(&self) -> &str { self.order_id_colname.as_str() }
